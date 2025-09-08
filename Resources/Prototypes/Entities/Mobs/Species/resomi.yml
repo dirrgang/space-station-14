@@ -1,6 +1,6 @@
 - type: entity
   name: Urist McRaptor
-  parent: [BaseMobSpeciesOrganic, BaseSpeciesPickupable]
+  parent: [BaseMobSpeciesOrganic]
   id: BaseMobResomi
   abstract: true
   components:

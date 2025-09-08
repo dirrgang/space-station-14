@@ -1269,7 +1269,7 @@
 - type: entity
   name: genetic ancestor
   id: MobBaseAncestor
-  parent: [SimpleMobBase, StripableInventoryBase]
+  parent: [SimpleMobBase, StripableInventoryBase, BaseSpeciesPickupable]
   description: The genetic bipedal ancestor of... Uh... Something. Yeah, there's definitely something on the station that descended from whatever this is.
   abstract: true
   components:
@@ -1396,7 +1396,7 @@
 - type: entity
   name: monkey
   id: MobMonkey
-  parent: [MobBaseAncestor, BaseSpeciesPickupable]
+  parent: [MobBaseAncestor]
   description: New church of neo-darwinists actually believe that EVERY animal evolved from a monkey. Tastes like pork, and killing them is both fun and relaxing.
   components:
   - type: NameIdentifier
@@ -1509,7 +1509,7 @@
 - type: entity
   name: kobold
   id: MobBaseKobold
-  parent: [MobBaseAncestor, BaseSpeciesPickupable]
+  parent: [MobBaseAncestor]
   description: Cousins to the sentient race of lizard people, kobolds blend in with their natural habitat and are as nasty as monkeys; ready to pull out your hair and stab you to death.
   abstract: true
   components:

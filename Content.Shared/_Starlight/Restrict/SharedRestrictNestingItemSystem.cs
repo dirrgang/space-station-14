@@ -19,6 +19,7 @@ using Robust.Shared.Random;
 using Robust.Shared.Serialization;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
+using Robust.Shared.Physics.Components;
 
 namespace Content.Shared.Starlight.Restrict;
 public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
@@ -46,6 +47,9 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
             return;
         
         if (!InRange(args.User, args.Target))
+            return;
+
+        if (!WithinMassLimits(args.User, ent))
             return;
 
         //make sure we arent in a container, if we are, skip showing the verb
@@ -96,6 +100,13 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
         if (!InRange(user, target))
             return;
 
+
+        if (!WithinMassLimits(user, ent))
+        {
+            _popup.PopupClient(Loc.GetString("restrict-nesting-item-cant-pickup", ("user", ent)), user, user);
+            return;
+        }
+
         //we need to recursively check inventory to see if the item being picked up has any other items that prevent nesting
         if (RecursivelyCheckForNesting(ent, skipInitialItem: true))
         {
@@ -143,6 +154,13 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
             return;
         }
 
+        if (!WithinMassLimits(args.User, ent))
+        {
+            _popup.PopupEntity(Loc.GetString("restrict-nesting-item-cant-pickup", ("user", ent)), args.User, args.User);
+            ev.Cancel();
+            return;
+        }
+
         if (RecursivelyCheckForNesting(ent, skipInitialItem: true))
         {
             _popup.PopupEntity(Loc.GetString("restrict-nesting-item-cant-pickup", ("user", ent)), args.User, args.User);
@@ -165,6 +183,12 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
         if (!InRange(args.User, ent))
             return;
 
+        if (!WithinMassLimits(args.User, ent))
+        {
+            _popup.PopupClient(Loc.GetString("restrict-nesting-item-cant-pickup", ("user", ent)), args.User, args.User);
+            return;
+        }
+
         //run the same check again incase inventory changed during the doafter
         if (RecursivelyCheckForNesting(ent, skipInitialItem: true))
         {
@@ -175,6 +199,27 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
         //if we get here, we can pickup the item
         //this is a forced pickup to fix dragging by species with no tails
         _handsSystem.TryForcePickupAnyHand(args.User, ent);
+    }
+
+    /// <summary>
+    ///     Determines if <paramref name="target"/> is light enough for
+    ///     <paramref name="user"/> to carry. The allowed mass is the user's mass
+    ///     multiplied by the target's <see cref="RestrictNestingItemComponent.MaxMassRatio"/>.
+    /// </summary>
+    /// <param name="user">Entity attempting the pickup.</param>
+    /// <param name="target">Entity being evaluated for pickup.</param>
+    /// <returns>
+    ///     <see langword="true"/> if the target's mass is within the permitted range;
+    ///     otherwise <see langword="false"/>.
+    /// </returns>
+    private bool WithinMassLimits(EntityUid user, Entity<RestrictNestingItemComponent> target)
+    {
+        if (!TryComp<PhysicsComponent>(user, out var userPhysics) ||
+            !TryComp<PhysicsComponent>(target, out var targetPhysics))
+            return false;
+
+        var limit = userPhysics.Mass * target.Comp.MaxMassRatio;
+        return targetPhysics.Mass <= limit;
     }
 
     /// <summary>

@@ -1,5 +1,5 @@
 ﻿- type: entity
-  parent: [BaseMobSpeciesOrganic, BaseSpeciesPickupable]
+  parent: [BaseMobSpeciesOrganic]
   id: BaseMobFelionoid
   abstract: true
   components:

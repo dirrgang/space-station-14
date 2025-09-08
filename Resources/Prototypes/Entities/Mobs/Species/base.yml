@@ -6,6 +6,7 @@
   - MobPolymorphable
   - MobCombat
   - StripableInventoryBase
+  - BaseSpeciesPickupable # enables carrying this species if mass ratio allows
   id: BaseMobSpecies
   abstract: true
   components:
