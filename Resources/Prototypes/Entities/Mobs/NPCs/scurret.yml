@@ -4,7 +4,7 @@
 - type: entity
   name: scurret
   id: MobBaseScurret
-  parent: [ MobBaseAncestor ] #Starlight - give the scurret uppies.
+  parent: [ MobBaseAncestor ] #Starlight
   abstract: true
   components:
   # Starlight-start: Languages
