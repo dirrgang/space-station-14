@@ -194,6 +194,12 @@ public sealed partial class SpeciesPrototype : IPrototype
     public int StandardDensity = 110;
     //starlight end
 
+    /// <summary>
+    ///     Multiplier applied to this species' mass to determine how heavy a carried entity may be.
+    /// </summary>
+    [DataField("carryWeightMultiplier")]
+    public float CarryWeightMultiplier { get; private set; } = 0.75f;
+
     /// Starlight
     /// <summary>
     ///     How many points species get for installing cybernetics at roundstart

@@ -10,7 +10,6 @@
     - 0, 0, 6, 4
   - type: RestrictNestingItem
     # Allow pickup only if the carrier is at least ~33% heavier
-    maxMassRatio: 0.75
   - type: MultiHandedItem
   - type: CanEscapeInventory
     baseResistTime: 2

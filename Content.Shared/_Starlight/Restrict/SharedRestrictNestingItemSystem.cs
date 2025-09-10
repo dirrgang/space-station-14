@@ -4,6 +4,8 @@ using Content.Shared.DoAfter;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Interaction;
 using Content.Shared.Interaction.Events;
+using Content.Shared.Humanoid;
+using Content.Shared.Humanoid.Prototypes;
 using Content.Shared.Inventory;
 using Content.Shared.Item;
 using Content.Shared.Movement.Components;
@@ -20,6 +22,7 @@ using Robust.Shared.Serialization;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 using Robust.Shared.Physics.Components;
+using Robust.Shared.Prototypes;
 
 namespace Content.Shared.Starlight.Restrict;
 public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
@@ -31,6 +34,7 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
     [Dependency] private readonly SharedContainerSystem _containerSystem = default!;
     [Dependency] private readonly SharedInteractionSystem _interactionSystem = default!;
     [Dependency] private readonly ActionBlockerSystem _actionBlockerSystem = default!;
+    [Dependency] private readonly IPrototypeManager _prototype = default!;
     public override void Initialize()
     {
         //register a new verb for picking up the mob
@@ -204,7 +208,8 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
     /// <summary>
     ///     Determines if <paramref name="target"/> is light enough for
     ///     <paramref name="user"/> to carry. The allowed mass is the user's mass
-    ///     multiplied by the target's <see cref="RestrictNestingItemComponent.MaxMassRatio"/>.
+    ///     multiplied by either a species-specific carry weight multiplier or any
+    ///     override on the carrier's <see cref="RestrictNestingCarrierComponent"/>.
     /// </summary>
     /// <param name="user">Entity attempting the pickup.</param>
     /// <param name="target">Entity being evaluated for pickup.</param>
@@ -213,12 +218,23 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
     ///     otherwise <see langword="false"/>.
     /// </returns>
     private bool WithinMassLimits(EntityUid user, Entity<RestrictNestingItemComponent> target)
-    {
+    s
         if (!TryComp<PhysicsComponent>(user, out var userPhysics) ||
             !TryComp<PhysicsComponent>(target, out var targetPhysics))
             return false;
 
-        var limit = userPhysics.Mass * target.Comp.MaxMassRatio;
+        TryComp<RestrictNestingCarrierComponent>(user, out var carrier);
+        var ratio = carrier?.CarryWeightMultiplier;
+
+        if (TryComp<HumanoidAppearanceComponent>(user, out var appearance) &&
+            _prototype.TryIndex<SpeciesPrototype>(appearance.Species, out var species))
+        {
+            ratio ??= species.CarryWeightMultiplier;
+        }
+
+        ratio ??= 0.75f;
+
+        var limit = userPhysics.Mass * ratio.Value;
         return targetPhysics.Mass <= limit;
     }
 
