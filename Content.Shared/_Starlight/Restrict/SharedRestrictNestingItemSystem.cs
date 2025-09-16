@@ -25,6 +25,7 @@ using Robust.Shared.Physics.Components;
 using Robust.Shared.Prototypes;
 
 namespace Content.Shared.Starlight.Restrict;
+
 public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
 {
     [Dependency] private readonly SharedPopupSystem _popup = default!;
@@ -35,6 +36,7 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
     [Dependency] private readonly SharedInteractionSystem _interactionSystem = default!;
     [Dependency] private readonly ActionBlockerSystem _actionBlockerSystem = default!;
     [Dependency] private readonly IPrototypeManager _prototype = default!;
+    [Dependency] private readonly SharedItemSystem _itemSystem = default!;
     public override void Initialize()
     {
         //register a new verb for picking up the mob
@@ -49,7 +51,7 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
         //skip if its yourself
         if (args.Target == args.User)
             return;
-        
+
         if (!InRange(args.User, args.Target))
             return;
 
@@ -83,7 +85,7 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
     private void StripAttempt(Entity<RestrictNestingItemComponent> ent, ref StripAttemptEvent args)
     {
         //if we are already in a container
-        if(_containerSystem.TryGetContainingContainer((args.Target, null, null), out var container) || 
+        if (_containerSystem.TryGetContainingContainer((args.Target, null, null), out var container) ||
            _containerSystem.TryGetContainingContainer((args.User, null, null), out var container2))
         {
             //check if the thing we are trying to insert is a nesting item
@@ -97,9 +99,9 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
 
     private void StartPickup(Entity<RestrictNestingItemComponent> ent, EntityUid user, EntityUid target)
     {
-        if(_containerSystem.TryGetContainingContainer((user, null, null), out var container))
+        if (_containerSystem.TryGetContainingContainer((user, null, null), out var container))
             return;
-        
+
         //check range
         if (!InRange(user, target))
             return;
@@ -118,22 +120,22 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
             _popup.PopupClient(Loc.GetString("restrict-nesting-item-cant-pickup", ("user", ent)), user, user);
             return;
         }
-        
+
         //start a doafter
         var doAfterEvent = new DoAfterArgs(EntityManager,
             user,
             ent.Comp.DoAfter,
             new RestrictNestingItemPickupDoAfterEvent(),
             ent)
-            {
-                AttemptFrequency = AttemptFrequency.EveryTick,
-                BreakOnDamage = true,
-                BreakOnMove = true,
-                NeedHand = true,
-                BreakOnHandChange = false
-            };
+        {
+            AttemptFrequency = AttemptFrequency.EveryTick,
+            BreakOnDamage = true,
+            BreakOnMove = true,
+            NeedHand = true,
+            BreakOnHandChange = false
+        };
 
-        if(_doAfter.TryStartDoAfter(doAfterEvent))
+        if (_doAfter.TryStartDoAfter(doAfterEvent))
         {
             //send a message to the player being picked up that someone is picking them up
             _popup.PopupEntity(Loc.GetString("restrict-nesting-item-pickup-start", ("user", user)), target, target, PopupType.Large);
@@ -180,9 +182,9 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
             return;
 
         //hacky solution for now, but if we are already in a container, then cancel
-        if(_containerSystem.TryGetContainingContainer((args.User, null, null), out var container))
+        if (_containerSystem.TryGetContainingContainer((args.User, null, null), out var container))
             return;
-        
+
         //check range
         if (!InRange(args.User, ent))
             return;
@@ -199,6 +201,8 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
             _popup.PopupClient(Loc.GetString("restrict-nesting-item-cant-pickup", ("user", ent)), args.User, args.User);
             return;
         }
+
+        ApplySize(ent);
 
         //if we get here, we can pickup the item
         //this is a forced pickup to fix dragging by species with no tails
@@ -218,7 +222,7 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
     ///     otherwise <see langword="false"/>.
     /// </returns>
     private bool WithinMassLimits(EntityUid user, Entity<RestrictNestingItemComponent> target)
-    s
+    {
         if (!TryComp<PhysicsComponent>(user, out var userPhysics) ||
             !TryComp<PhysicsComponent>(target, out var targetPhysics))
             return false;
@@ -265,7 +269,7 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
             Log.Warning($"{nameof(RecursivelyCheckForNesting)} hit max depth of {depth} for item {item}");
             return false;
         }
-        
+
         if (skipInitialItem && !TryComp<MobMoverComponent>(item, out var mobMover))
             return false;
 
@@ -292,6 +296,49 @@ public abstract partial class SharedRestrictNestingItemSystem : EntitySystem
 
         //if we get here, we have no nesting items in the inventory
         return false;
+    }
+
+    private void ApplySize(Entity<RestrictNestingItemComponent> ent)
+    {
+        if (!TryComp<PhysicsComponent>(ent, out var physics))
+            return;
+
+        var size = ent.Comp.FallbackSize;
+        var handsNeeded = ent.Comp.FallbackHandsNeeded;
+
+        if (handsNeeded < 1)
+            handsNeeded = 1;
+
+        RestrictNestingMassBand? selectedBand = null;
+
+        foreach (var band in ent.Comp.MassThresholds)
+        {
+            if (band == null)
+                continue;
+
+            if (physics.Mass > band.MaxMass)
+                continue;
+
+            if (selectedBand == null || band.MaxMass < selectedBand.MaxMass)
+                selectedBand = band;
+        }
+
+        if (selectedBand != null)
+        {
+            size = selectedBand.Size;
+            handsNeeded = selectedBand.HandsNeeded < 1 ? 1 : selectedBand.HandsNeeded;
+        }
+
+        _itemSystem.SetSize(ent.Owner, size);
+
+        if (!TryComp<MultiHandedItemComponent>(ent.Owner, out var multi))
+            return;
+
+        if (multi.HandsNeeded == handsNeeded)
+            return;
+
+        multi.HandsNeeded = handsNeeded;
+        Dirty(ent.Owner, multi);
     }
 }
 
