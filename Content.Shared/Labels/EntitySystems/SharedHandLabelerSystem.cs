@@ -5,6 +5,8 @@ using Content.Shared.Labels.Components;
 using Content.Shared.Popups;
 using Content.Shared.Verbs;
 using Content.Shared.Whitelist;
+using Content.Shared.Mobs.Components;
+using Content.Shared.Starlight.Restrict;
 using Robust.Shared.GameStates;
 using Robust.Shared.Network;
 
@@ -76,10 +78,14 @@ public abstract class SharedHandLabelerSystem : EntitySystem
             _labelSystem.Label(target, handLabeler.AssignedLabel);
         result = Loc.GetString("hand-labeler-successfully-applied");
     }
+    private bool HasLabelRestrictions(EntityUid target)
+    {
+        return HasComp<RestrictNestingItemComponent>(target) || HasComp<MobStateComponent>(target) || HasComp<NoLabelComponent>(target);
+    }
 
     private void OnUtilityVerb(EntityUid uid, HandLabelerComponent handLabeler, GetVerbsEvent<UtilityVerb> args)
     {
-        if (args.Target is not { Valid: true } target || _whitelistSystem.IsWhitelistFail(handLabeler.Whitelist, target) || !args.CanAccess)
+        if (args.Target is not { Valid: true } target || _whitelistSystem.IsWhitelistFail(handLabeler.Whitelist, target) || !args.CanAccess || HasLabelRestrictions(target))
             return;
 
         var labelerText = handLabeler.AssignedLabel == string.Empty ? Loc.GetString("hand-labeler-remove-label-text") : Loc.GetString("hand-labeler-add-label-text");
@@ -100,6 +106,12 @@ public abstract class SharedHandLabelerSystem : EntitySystem
     {
         if (args.Target is not { Valid: true } target || _whitelistSystem.IsWhitelistFail(handLabeler.Whitelist, target) || !args.CanReach)
             return;
+        if (HasLabelRestrictions(target))
+        {
+            _popupSystem.PopupClient(Loc.GetString("hand-labeler-invalid-target"), args.User, args.User);
+            return;
+
+        }
 
         Labeling(uid, target, args.User, handLabeler);
     }

@@ -4,14 +4,15 @@ hand-labeler-ui-header = Hand Labeler
 hand-labeler-current-text-label = Label:
 
 # When the hand labeler applies a label successfully
-hand-labeler-successfully-applied = Applied label successfully
+hand-labeler-successfully-applied = Label applied successfully
 
 # When the hand labeler removes a label successfully
-hand-labeler-successfully-removed = Removed label successfully
+hand-labeler-successfully-removed = Label removed successfully
 
 # Appended to the description of an object with a label on input
-hand-labeler-has-label = This object has a label on it, which reads '{$label}'
+hand-labeler-has-label = This object has a label that reads: "{$label}"
 
 # Verb text
 hand-labeler-remove-label-text = Remove label
 hand-labeler-add-label-text = Apply label
+hand-labeler-invalid-target = You can't put a label on that.
