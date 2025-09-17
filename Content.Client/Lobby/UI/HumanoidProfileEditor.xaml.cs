@@ -34,6 +34,8 @@ using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
 using Content.Shared.Starlight.CCVar;
 using Content.Client._Starlight.TTS;
+using Content.Client._CD.Records.UI;
+using Content.Shared._CD.Records;
 
 namespace Content.Client.Lobby.UI
 {
@@ -103,6 +105,8 @@ namespace Content.Client.Lobby.UI
         private readonly Dictionary<string, BoxContainer> _jobCategories = new();
 
         private readonly ColorSelectorSliders _rgbSkinColorSelector = new();
+
+        private readonly RecordEditorGui _recordsTab;
 
         private bool _isDirty;
 
@@ -552,6 +556,9 @@ namespace Content.Client.Lobby.UI
                 _ => _entManager.System<TextToSpeechSystem>().RequestPreviewTts(Profile?.SiliconVoice ?? "");
 
             SetupTabs();
+            _recordsTab = new RecordEditorGui(UpdateProfileRecords);
+            TabContainer.AddChild(_recordsTab);
+            TabContainer.SetTabTitle(TabContainer.ChildCount - 1, Loc.GetString("humanoid-profile-editor-cd-records-tab"));
             SetupInfoEditors();
             RefreshCharacterInfo();
             // 🌟Starlight🌟 end
@@ -937,6 +944,8 @@ namespace Content.Client.Lobby.UI
             UpdateSiliconVoicesControls(); // 🌟Starlight🌟
             UpdateCybernetics(); // Starlight
 
+            _recordsTab.Update(profile);
+
             RefreshAntags();
             RefreshJobs();
             RefreshLoadouts();
@@ -1218,6 +1227,16 @@ namespace Content.Client.Lobby.UI
                 return;
 
             UpdateJobPreferences();
+        }
+
+        // CD: Records editor
+        private void UpdateProfileRecords(PlayerProvidedCharacterRecords records)
+        {
+            if (Profile is null)
+                return;
+
+            Profile = Profile.WithCDCharacterRecords(records);
+            SetDirty();
         }
 
         //starlight start

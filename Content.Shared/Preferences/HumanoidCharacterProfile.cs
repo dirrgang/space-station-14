@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 using Content.Shared.CCVar;
+using Content.Shared._CD.Records;
 using Content.Shared.Starlight.CCVar; // Starlight
 using Content.Shared.GameTicking;
 using Content.Shared.Humanoid;
@@ -52,6 +53,9 @@ namespace Content.Shared.Preferences
         /// </summary>
         [DataField]
         public bool Enabled;
+
+        [DataField("cosmaticDriftCharacterRecords")]
+        public PlayerProvidedCharacterRecords? CDCharacterRecords;
 
         /// <summary>
         /// <see cref="_loadouts"/>
@@ -135,7 +139,8 @@ namespace Content.Shared.Preferences
             HashSet<ProtoId<TraitPrototype>> traitPreferences,
             Dictionary<string, RoleLoadout> loadouts,
             List<string> cybernetics, // Starlight
-            bool enabled)
+            bool enabled,
+            PlayerProvidedCharacterRecords? cdCharacterRecords = null)
         {
             Name = name;
             Voice = voice;
@@ -159,6 +164,7 @@ namespace Content.Shared.Preferences
             _loadouts = loadouts;
             Cybernetics = cybernetics; // Starlight
             Enabled = enabled;
+            CDCharacterRecords = cdCharacterRecords;
         }
 
         /// <summary>Copy constructor</summary>
@@ -184,7 +190,8 @@ namespace Content.Shared.Preferences
                 new HashSet<ProtoId<TraitPrototype>>(other.TraitPreferences),
                 new Dictionary<string, RoleLoadout>(other.Loadouts),
                 other.Cybernetics, // Starlight
-                other.Enabled)
+                other.Enabled,
+                other.CDCharacterRecords)
         {
         }
 
@@ -436,6 +443,11 @@ namespace Content.Shared.Preferences
             };
         }
 
+        public HumanoidCharacterProfile WithCDCharacterRecords(PlayerProvidedCharacterRecords records)
+        {
+            return new(this) { CDCharacterRecords = records };
+        }
+
         public HumanoidCharacterProfile AsEnabled(bool enabled = true)
         {
             return new(this) { Enabled = enabled };
@@ -466,6 +478,8 @@ namespace Content.Shared.Preferences
             if (!Loadouts.SequenceEqual(other.Loadouts)) return false;
             if (FlavorText != other.FlavorText) return false;
             if (Enabled != other.Enabled) return false;
+            if (CDCharacterRecords != null && other.CDCharacterRecords != null &&
+                !CDCharacterRecords.MemberwiseEquals(other.CDCharacterRecords)) return false;
             return Appearance.MemberwiseEquals(other.Appearance);
         }
 
@@ -620,6 +634,15 @@ namespace Content.Shared.Preferences
 
             _traitPreferences.Clear();
             _traitPreferences.UnionWith(GetValidTraits(traits, prototypeManager));
+
+            if (CDCharacterRecords == null)
+            {
+                CDCharacterRecords = PlayerProvidedCharacterRecords.DefaultRecords();
+            }
+            else
+            {
+                CDCharacterRecords.EnsureValid();
+            }
 
             // Checks prototypes exist for all loadouts and dump / set to default if not.
             var toRemove = new ValueList<string>();

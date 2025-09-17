@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Content.Server.Administration.Logs;
+using Content.Server._CD.Records;
 using Content.Server.Administration.Managers;
 using Content.Server.Humanoid.Markings.Extensions;
 using Content.Shared.Administration.Logs;
@@ -16,6 +17,7 @@ using Content.Shared.GameTicking;
 using Content.Shared.Humanoid;
 using Content.Shared.Humanoid.Markings;
 using Content.Shared.Preferences;
+using Content.Shared._CD.Records;
 using Content.Shared.Preferences.Loadouts;
 using Content.Shared.Roles;
 using Content.Shared.Traits;
@@ -54,6 +56,9 @@ namespace Content.Server.Database
                 .Include(p => p.Profiles) // Starlight
                     .ThenInclude(h => h.StarLightProfile) // Starlight
                 .Include(p => p.Profiles).ThenInclude(h => h.CharacterInfo)// Starlight
+                .Include(p => p.Profiles)
+                    .ThenInclude(h => h.CDProfile)
+                    .ThenInclude(p => p.CharacterRecordEntries)
                 .Include(p => p.Profiles)
                     .ThenInclude(h => h.Loadouts)
                     .ThenInclude(l => l.Groups)
@@ -105,6 +110,8 @@ namespace Content.Server.Database
                 .Include(p => p.Jobs)
                 .Include(p => p.Antags)
                 .Include(p => p.Traits)
+                .Include(p => p.CDProfile)
+                    .ThenInclude(p => p.CharacterRecordEntries)
                 .Include(p => p.Loadouts)
                     .ThenInclude(l => l.Groups)
                     .ThenInclude(group => group.Loadouts)
@@ -255,6 +262,10 @@ namespace Content.Server.Database
                 }
             }
 
+            var cdRecords = profile.CDProfile?.CharacterRecords != null
+                ? RecordsSerialization.Deserialize(profile.CDProfile.CharacterRecords, profile.CDProfile.CharacterRecordEntries)
+                : PlayerProvidedCharacterRecords.DefaultRecords();
+
             var loadouts = new Dictionary<string, RoleLoadout>();
 
             foreach (var role in profile.Loadouts)
@@ -344,7 +355,8 @@ namespace Content.Server.Database
                 traits.ToHashSet(),
                 loadouts,
                 profile.StarLightProfile?.CyberneticIds ?? [], // Starlight
-                profile.Enabled
+                profile.Enabled,
+                cdRecords
             );
         }
 
@@ -410,6 +422,13 @@ namespace Content.Server.Database
                 humanoid.TraitPreferences
                         .Select(t => new Trait { TraitName = t })
             );
+
+            var cdRecords = humanoid.CDCharacterRecords ?? PlayerProvidedCharacterRecords.DefaultRecords();
+            profile.CDProfile ??= new CDModel.CDProfile();
+            profile.CDProfile.Height = appearance.Height;
+            profile.CDProfile.CharacterRecords = JsonSerializer.SerializeToDocument(cdRecords);
+            profile.CDProfile.CharacterRecordEntries.Clear();
+            profile.CDProfile.CharacterRecordEntries.AddRange(RecordsSerialization.GetEntries(cdRecords));
 
             profile.Loadouts.Clear();
 

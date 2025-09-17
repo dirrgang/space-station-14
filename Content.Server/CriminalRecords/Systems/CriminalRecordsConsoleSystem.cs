@@ -15,6 +15,8 @@ using Content.Shared.IdentityManagement;
 using Content.Shared.Security.Components;
 using System.Linq;
 using Content.Shared.Roles.Jobs;
+using Content.Server._CD.Records;
+using Content.Shared._CD.Records;
 
 namespace Content.Server.CriminalRecords.Systems;
 
@@ -45,6 +47,18 @@ public sealed class CriminalRecordsConsoleSystem : SharedCriminalRecordsConsoleS
             subs.Event<CriminalRecordAddHistory>(OnAddHistory);
             subs.Event<CriminalRecordDeleteHistory>(OnDeleteHistory);
             subs.Event<CriminalRecordSetStatusFilter>(OnStatusFilterPressed);
+        });
+
+        Subs.BuiEvents<CriminalRecordsConsoleComponent>(CharacterRecordConsoleKey.Key, subs =>
+        {
+            subs.Event<SelectStationRecord>(OnKeySelected);
+            subs.Event((Entity<CriminalRecordsConsoleComponent> ent, ref CriminalRecordChangeStatus args) =>
+            {
+                OnChangeStatus(ent, ref args);
+                RaiseLocalEvent(ent.Owner, new CharacterRecordsModifiedEvent());
+            });
+            subs.Event<CriminalRecordAddHistory>(OnAddHistory);
+            subs.Event<CriminalRecordDeleteHistory>(OnDeleteHistory);
         });
     }
 
@@ -169,6 +183,7 @@ public sealed class CriminalRecordsConsoleSystem : SharedCriminalRecordsConsoleS
             ent.Comp.SecurityChannel, ent);
 
         UpdateUserInterface(ent);
+        RaiseLocalEvent(ent.Owner, new CharacterRecordsModifiedEvent());
     }
 
     private void OnAddHistory(Entity<CriminalRecordsConsoleComponent> ent, ref CriminalRecordAddHistory msg)
