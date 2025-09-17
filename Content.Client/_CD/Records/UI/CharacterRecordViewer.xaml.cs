@@ -193,6 +193,8 @@ public sealed partial class CharacterRecordViewer : FancyWindow
         RecordEntryViewType.AddItem(Loc.GetString("department-Medical"), (int)RecordConsoleType.Medical);
         RecordEntryViewType.AddItem(Loc.GetString("humanoid-profile-editor-cd-records-employment"),
             (int)RecordConsoleType.Employment);
+        RecordEntryViewType.AddItem(Loc.GetString("humanoid-profile-editor-cd-records-admin"),
+            (int)RecordConsoleType.Admin);
         RecordEntryViewType.SelectId((int)RecordConsoleType.Security);
         RecordEntryViewType.OnItemSelected += args =>
         {
@@ -424,14 +426,15 @@ public sealed partial class CharacterRecordViewer : FancyWindow
     private void UpdateAdminEntryList(FullCharacterRecords record)
     {
         var selectedId = RecordEntryViewType.SelectedId;
-        if (!Enum.IsDefined(typeof(RecordConsoleType), selectedId) ||
-            (RecordConsoleType)selectedId == RecordConsoleType.Admin)
+        if (!Enum.IsDefined(typeof(RecordConsoleType), selectedId))
         {
             selectedId = (int)RecordConsoleType.Security;
             RecordEntryViewType.SelectId(selectedId);
         }
 
         var selectedType = (RecordConsoleType)selectedId;
+        // Let admins quickly pivot between personal, medical, security, or dedicated admin entries without
+        // forcing another server sync.
         switch (selectedType)
         {
             case RecordConsoleType.Employment:
@@ -442,6 +445,9 @@ public sealed partial class CharacterRecordViewer : FancyWindow
                 break;
             case RecordConsoleType.Security:
                 SetEntries(record.PRecords.SecurityEntries, true);
+                break;
+            case RecordConsoleType.Admin:
+                SetEntries(record.PRecords.AdminEntries, true);
                 break;
         }
     }

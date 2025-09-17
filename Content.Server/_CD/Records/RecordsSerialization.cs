@@ -75,7 +75,8 @@ public static class RecordsSerialization
             postmortemInstructions: DeserializeString(element, nameof(def.PostmortemInstructions), def.PostmortemInstructions),
             medicalEntries: DeserializeEntries(entries, CDModel.DbRecordEntryType.Medical),
             securityEntries: DeserializeEntries(entries, CDModel.DbRecordEntryType.Security),
-            employmentEntries: DeserializeEntries(entries, CDModel.DbRecordEntryType.Employment));
+            employmentEntries: DeserializeEntries(entries, CDModel.DbRecordEntryType.Employment),
+            adminEntries: DeserializeEntries(entries, CDModel.DbRecordEntryType.Admin));
     }
 
     private static CDModel.CharacterRecordEntry ConvertEntry(
@@ -97,6 +98,7 @@ public static class RecordsSerialization
         return records.MedicalEntries.Select(medical => ConvertEntry(medical, CDModel.DbRecordEntryType.Medical))
             .Concat(records.SecurityEntries.Select(security => ConvertEntry(security, CDModel.DbRecordEntryType.Security)))
             .Concat(records.EmploymentEntries.Select(employment => ConvertEntry(employment, CDModel.DbRecordEntryType.Employment)))
+            .Concat(records.AdminEntries.Select(admin => ConvertEntry(admin, CDModel.DbRecordEntryType.Admin)))
             .ToList();
     }
 }

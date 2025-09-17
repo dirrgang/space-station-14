@@ -33,6 +33,7 @@ public static class CDModel
         Medical = 0,
         Security = 1,
         Employment = 2,
+        Admin = 3,
     }
 
     [Table("cd_character_record_entries"), Index(nameof(Id))]

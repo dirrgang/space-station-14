@@ -11,6 +11,7 @@ using Content.Shared.Roles;
 using Content.Shared.StationRecords;
 using Content.Shared._CD.Records;
 using Robust.Shared.GameObjects;
+using Robust.Shared.Log;
 using Robust.Shared.Prototypes;
 
 namespace Content.Server._CD.Records;
@@ -149,6 +150,12 @@ public sealed class CharacterRecordsSystem : EntitySystem
             case CharacterRecordType.Security:
                 list = records.SecurityEntries;
                 break;
+            case CharacterRecordType.Admin:
+                list = records.AdminEntries;
+                break;
+            default:
+                Log.Warning($"Attempted to remove unsupported record type {type} for entity {player}");
+                return;
         }
 
         if (list == null)
