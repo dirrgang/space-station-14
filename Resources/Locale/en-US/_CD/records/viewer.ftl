@@ -1,6 +1,7 @@
 cd-character-records-viewer-title-employ = Employment Records
 cd-character-records-viewer-title-sec = Security Records
 cd-character-records-viewer-title-med = Medical Records
+cd-character-records-viewer-title-admin = Admin Records
 
 cd-record-viewer-empty-state = Cannot fetch records.
 cd-record-viewer-no-record-selected = Please select record.
@@ -12,6 +13,9 @@ cd-character-records-viewer-record-species = Species:
 
 cd-character-records-viewer-record-sec-fingerprint = Fingerprint:
 cd-character-records-viewer-record-sec-dna = DNA:
+
+cd-character-records-viewer-workauth-yes = Yes
+cd-character-records-viewer-workauth-no = No
 
 cd-character-records-viewer-unknown = ERROR UNKNOWN
 

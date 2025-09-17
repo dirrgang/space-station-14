@@ -136,19 +136,31 @@ public sealed class CharacterRecordsSystem : EntitySystem
             return;
 
         var records = value.PRecords;
+        List<PlayerProvidedCharacterRecords.RecordEntry>? list = null;
 
         switch (type)
         {
             case CharacterRecordType.Employment:
-                records.EmploymentEntries.RemoveAt(index);
+                list = records.EmploymentEntries;
                 break;
             case CharacterRecordType.Medical:
-                records.MedicalEntries.RemoveAt(index);
+                list = records.MedicalEntries;
                 break;
             case CharacterRecordType.Security:
-                records.SecurityEntries.RemoveAt(index);
+                list = records.SecurityEntries;
                 break;
         }
+
+        if (list == null)
+            return;
+
+        if (index < 0 || index >= list.Count)
+        {
+            Log.Warning($"Attempted to remove {type} record entry at invalid index {index} for entity {player}");
+            return;
+        }
+
+        list.RemoveAt(index);
 
         RaiseLocalEvent(station, new CharacterRecordsModifiedEvent());
     }
@@ -183,7 +195,8 @@ public sealed class CharacterRecordsSystem : EntitySystem
         if (!Resolve(station, ref records))
             return;
 
-        records.Records.Remove(key.Key.Index);
+        if (records.Records.Remove(key.Key.Index))
+            RaiseLocalEvent(station, new CharacterRecordsModifiedEvent());
     }
 
     public IDictionary<uint, FullCharacterRecords> QueryRecords(EntityUid station, CharacterRecordsComponent? recordsDb = null)

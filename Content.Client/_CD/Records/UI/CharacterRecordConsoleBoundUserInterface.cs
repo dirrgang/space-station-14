@@ -87,6 +87,8 @@ public sealed class CharacterRecordConsoleBoundUserInterface(EntityUid owner, En
         base.Dispose(disposing);
 
         _window?.Close();
+        _historyWindow?.Close();
+        _historyWindow = null;
     }
 
     /// <summary>

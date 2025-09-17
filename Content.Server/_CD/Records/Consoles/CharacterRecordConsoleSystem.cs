@@ -6,6 +6,7 @@ using Content.Shared.Security;
 using Content.Shared.StationRecords;
 using Content.Shared._CD.Records;
 using Robust.Server.GameObjects;
+using Robust.Shared.Log;
 
 namespace Content.Server._CD.Records.Consoles;
 
@@ -78,19 +79,24 @@ public sealed class CharacterRecordConsoleSystem : EntitySystem
         var station = console.LongRange
             ? _station.GetStationInMap(Transform(entity).MapID)
             : _station.GetOwningStation(entity);
-        if (!HasComp<StationRecordsComponent>(station) ||
-            !HasComp<CharacterRecordsComponent>(station))
+        if (station is not { } stationUid ||
+            !HasComp<StationRecordsComponent>(stationUid) ||
+            !HasComp<CharacterRecordsComponent>(stationUid))
         {
             SendState(entity, new CharacterRecordConsoleState { ConsoleType = console.ConsoleType });
             return;
         }
 
-        var characterRecords = _characterRecords.QueryRecords(station.Value);
+        var characterRecords = _characterRecords.QueryRecords(stationUid);
         // Get the name and station records key display from the list of records
         var names = new Dictionary<uint, CharacterRecordConsoleState.CharacterInfo>();
         foreach (var (i, r) in characterRecords)
         {
-            var netEnt = _entity.GetNetEntity(r.Owner!.Value);
+            if (r.Owner is not EntityUid owner || !_entity.TryGetNetEntity(owner, out var netEnt))
+            {
+                Log.Warning($"Character record {i} had no valid owner; skipping entry update");
+                continue;
+            }
             // Admins get additional info to make it easier to run commands
             var nameJob = console.ConsoleType != RecordConsoleType.Admin
                 ? $"{r.Name} ({r.JobTitle})"
@@ -103,9 +109,8 @@ public sealed class CharacterRecordConsoleSystem : EntitySystem
                     continue;
             }
 
-            if (console.SecurityStatusFilter is {} secFilter &&
-                station is {} s &&
-                IsSkippedBySecurityStatus(secFilter, r, s))
+            if (console.SecurityStatusFilter is { } secFilter &&
+                IsSkippedBySecurityStatus(secFilter, r, stationUid))
             {
                 continue;
             }
@@ -131,7 +136,7 @@ public sealed class CharacterRecordConsoleSystem : EntitySystem
              console is { ConsoleType: RecordConsoleType.Security, LongRange: false })
             && record?.StationRecordsKey != null)
         {
-            var key = new StationRecordKey(record.StationRecordsKey.Value, station.Value);
+            var key = new StationRecordKey(record.StationRecordsKey.Value, stationUid);
             _records.TryGetRecord(key, out criminalRecord);
         }
 
