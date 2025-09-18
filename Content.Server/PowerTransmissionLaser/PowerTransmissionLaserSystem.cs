@@ -177,7 +177,7 @@ public sealed class PowerTransmissionLaserSystem : EntitySystem
         var popup = Loc.GetString(args.Enabled
             ? "power-transmission-laser-popup-enabled"
             : "power-transmission-laser-popup-disabled");
-        _popup.PopupEntity(popup, ent.Owner, Filter.Entities(args.Actor));
+        _popup.PopupEntity(popup, ent.Owner, args.Actor);
     }
 
     private void HandleSetPrice(Entity<PowerTransmissionLaserComponent> ent, ref PowerTransmissionLaserSetPriceMessage args)
