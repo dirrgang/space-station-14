@@ -8,6 +8,7 @@ using Robust.Client.UserInterface.CustomControls;
 using Robust.Client.UserInterface.XAML;
 using Robust.Shared.Localization;
 using Robust.Shared.Maths;
+using Content.Client.UserInterface.Controls;
 
 namespace Content.Client.PowerTransmissionLaser;
 
