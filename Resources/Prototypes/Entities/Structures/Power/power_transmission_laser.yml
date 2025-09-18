@@ -1,0 +1,87 @@
+- type: entity
+  id: PowerTransmissionLaser
+  parent: [ BaseMachinePowered, ConstructibleMachine ]
+  name: power transmission laser
+  description: A massive laser array that exports surplus energy for station profit.
+  components:
+  - type: Sprite
+    sprite: Structures/Power/power_transmission_laser.rsi
+    snapCardinals: true
+    layers:
+    - state: base
+      map: ["enum.PowerTransmissionLaserVisualLayers.Base"]
+    - state: indicator-unpowered
+      shader: unshaded
+      visible: false
+      map: ["enum.PowerTransmissionLaserVisualLayers.Indicator"]
+    - state: beam
+      shader: unshaded
+      visible: false
+      map: ["enum.PowerTransmissionLaserVisualLayers.Beam"]
+  - type: Appearance
+  - type: GenericVisualizer
+    visuals:
+      enum.PowerDeviceVisuals.VisualState:
+        enum.PowerTransmissionLaserVisualLayers.Base:
+          Unpowered: { state: "base" }
+          Disabled: { state: "base" }
+          Idle: { state: "base" }
+          Active: { state: "base" }
+        enum.PowerTransmissionLaserVisualLayers.Indicator:
+          Unpowered: { state: "indicator-unpowered", visible: true }
+          Disabled: { state: "indicator-disabled", visible: true }
+          Idle: { state: "indicator-enabled", visible: true }
+          Active: { state: "indicator-enabled", visible: true }
+      enum.PowerDeviceVisuals.Powered:
+        enum.PowerTransmissionLaserVisualLayers.Beam:
+          True: { state: "beam", visible: true }
+          False: { visible: false }
+  - type: NodeContainer
+    examinable: true
+    nodes:
+      power:
+        !type:CableDeviceNode
+        nodeGroupID: HVPower
+  - type: PowerConsumer
+    showInMonitor: true
+    drawRate: 10000000
+  - type: PowerMonitoringDevice
+    group: Consumer
+    loadNode: power
+    sprite: Structures/Power/power_transmission_laser_icon.rsi
+    state: icon
+  - type: LitOnPowered
+  - type: PointLight
+    radius: 4
+    energy: 1.2
+    color: "#ffd27f"
+    enabled: false
+    castShadows: false
+  - type: AmbientOnPowered
+  - type: AmbientSound
+    range: 5
+    volume: -6
+    sound:
+      path: /Audio/Ambience/Objects/engine_hum.ogg
+  - type: AccessReader
+    access:
+    - Engineering
+  - type: WiresPanel
+  - type: GuideHelp
+    guides:
+    - Power
+  - type: Machine
+    board: PowerTransmissionLaserMachineCircuitboard
+  - type: PowerTransmissionLaser
+    maxPowerDraw: 10000000
+    pricePerMegawatt: 5
+    minPrice: 0
+    maxPrice: 100
+    stepSmall: 1
+    stepLarge: 10
+  - type: UserInterface
+    interfaces:
+      enum.PowerTransmissionLaserUiKey.Key:
+        type: PowerTransmissionLaserBoundUserInterface
+  - type: ActivatableUI
+    key: enum.PowerTransmissionLaserUiKey.Key
