@@ -12,6 +12,8 @@ using Content.Server.Humanoid.Markings.Extensions;
 using Content.Shared.Administration.Logs;
 using Content.Shared.Construction.Prototypes;
 using Content.Shared.Database;
+using Content.Shared._CD.Records;
+using Content.Server._CD.Records;
 using Content.Shared.GameTicking;
 using Content.Shared.Humanoid;
 using Content.Shared.Humanoid.Markings;
@@ -58,6 +60,11 @@ namespace Content.Server.Database
                     .ThenInclude(h => h.Loadouts)
                     .ThenInclude(l => l.Groups)
                     .ThenInclude(group => group.Loadouts)
+                .Include(p => p.Profiles)
+                    .ThenInclude(h => h.CDProfile)
+                    // Entity Framework will populate CharacterRecordEntries for any existing CDProfile,
+                    // so it's safe to suppress the nullable warning here.
+                    .ThenInclude(cdProfile => cdProfile!.CharacterRecordEntries)
                 .Include(p => p.JobPriorities)
                 .AsSplitQuery()
                 .SingleOrDefaultAsync(p => p.UserId == userId.UserId, cancel);
@@ -109,6 +116,10 @@ namespace Content.Server.Database
                     .ThenInclude(l => l.Groups)
                     .ThenInclude(group => group.Loadouts)
                 .Include(p => p.CharacterInfo) // Starlight-edit
+                .Include(p => p.CDProfile)
+                    // Entity Framework will populate CharacterRecordEntries for any existing CDProfile,
+                    // so it's safe to suppress the nullable warning here as well.
+                    .ThenInclude(cdProfile => cdProfile!.CharacterRecordEntries)
                 .AsSplitQuery()
                 .SingleOrDefault(h => h.Slot == slot);
 
@@ -308,7 +319,7 @@ namespace Content.Server.Database
                 }
             }
             //end starlight
-            return new HumanoidCharacterProfile(
+            var humanoid = new HumanoidCharacterProfile(
                 profile.CharacterName,
                 profile.Voice,
                 profile.SiliconVoice, // 🌟Starlight🌟
@@ -346,6 +357,18 @@ namespace Content.Server.Database
                 profile.StarLightProfile?.CyberneticIds ?? [], // Starlight
                 profile.Enabled
             );
+
+            if (profile.CDProfile?.CharacterRecords != null)
+            {
+                var records = RecordsSerialization.Deserialize(profile.CDProfile.CharacterRecords, profile.CDProfile.CharacterRecordEntries);
+                humanoid = humanoid.WithCDCharacterRecords(records);
+            }
+            else
+            {
+                humanoid = humanoid.WithCDCharacterRecords(PlayerProvidedCharacterRecords.DefaultRecords());
+            }
+
+            return humanoid;
         }
 
         private static Profile ConvertProfiles(HumanoidCharacterProfile humanoid, int slot, Profile? profile = null)
@@ -410,6 +433,12 @@ namespace Content.Server.Database
                 humanoid.TraitPreferences
                         .Select(t => new Trait { TraitName = t })
             );
+
+            profile.CDProfile ??= new CDModel.CDProfile();
+            var storedRecords = humanoid.CDCharacterRecords ?? PlayerProvidedCharacterRecords.DefaultRecords();
+            profile.CDProfile.CharacterRecords = JsonSerializer.SerializeToDocument(storedRecords);
+            profile.CDProfile.CharacterRecordEntries.Clear();
+            profile.CDProfile.CharacterRecordEntries.AddRange(RecordsSerialization.GetEntries(storedRecords));
 
             profile.Loadouts.Clear();
 
