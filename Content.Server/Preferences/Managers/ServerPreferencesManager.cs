@@ -255,14 +255,22 @@ namespace Content.Server.Preferences.Managers
             if (!ShouldStorePrefs(session.Channel.AuthType))
             {
                 // Don't store data for guests.
+                var defaultProfile = HumanoidCharacterProfile.Random()
+                    // Seed the fallback lobby profile with sample records so the Cosmatic Drift
+                    // consoles and UI can be exercised immediately when running a local server
+                    // without an authenticated account. This mirrors Cosmatic Drift's behaviour
+                    // and makes debugging significantly easier because the default guest slot now
+                    // has data to inspect straight away.
+                    .WithCDCharacterRecords(PlayerProvidedCharacterRecords.DevSampleRecords());
+
                 var prefsData = new PlayerPrefData
                 {
                     PrefsLoaded = true,
                     Prefs = new PlayerPreferences(
-                        new[] {new KeyValuePair<int, ICharacterProfile>(0, HumanoidCharacterProfile.Random())},
+                        new[] { new KeyValuePair<int, ICharacterProfile>(0, defaultProfile) },
                         Color.Transparent,
                         [],
-                        new Dictionary<ProtoId<JobPrototype>, JobPriority>{{ SharedGameTicker.FallbackOverflowJob, JobPriority.High }}),
+                        new Dictionary<ProtoId<JobPrototype>, JobPriority> { { SharedGameTicker.FallbackOverflowJob, JobPriority.High } }),
                 };
 
                 _cachedPlayerPrefs[session.UserId] = prefsData;
