@@ -1,0 +1,75 @@
+<controls:FancyWindow xmlns="https://spacestation14.io"
+                      xmlns:controls="clr-namespace:Content.Client.UserInterface.Controls"
+                      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                      SetSize="520 360"
+                      Title="{Loc 'power-transmission-laser-ui-title'}"
+                      Resizable="False">
+    <BoxContainer Orientation="Vertical" Separation="8" Margin="6">
+        <BoxContainer Orientation="Horizontal" Separation="6" VerticalAlignment="Top">
+            <CheckBox Name="EnabledCheckBox"
+                      Text="{Loc 'power-transmission-laser-ui-toggle'}" />
+            <Label Name="StatusLabel"
+                   HorizontalAlignment="Right"
+                   HorizontalExpand="True"
+                   StyleClasses="LabelKeyText"
+                   Text="{Loc 'power-transmission-laser-ui-status-disabled'}" />
+        </BoxContainer>
+
+        <PanelContainer StyleClasses="LowDivider" />
+
+        <BoxContainer Orientation="Vertical" Separation="6">
+            <Label Text="{Loc 'power-transmission-laser-ui-price-label'}"
+                   StyleClasses="LabelKeyText" />
+            <BoxContainer Orientation="Horizontal" Separation="6">
+                <FloatSpinBox Name="PriceSpinBox"
+                              HorizontalExpand="True"
+                              Minimum="0"
+                              Value="5"
+                              AllowExpressions="False" />
+                <BoxContainer Orientation="Horizontal" Separation="4">
+                    <Button Name="PriceDownLarge" MinWidth="48"
+                            Text="{Loc 'power-transmission-laser-ui-button-price-down-large'}" />
+                    <Button Name="PriceDownSmall" MinWidth="48"
+                            Text="{Loc 'power-transmission-laser-ui-button-price-down-small'}" />
+                    <Button Name="PriceUpSmall" MinWidth="48"
+                            Text="{Loc 'power-transmission-laser-ui-button-price-up-small'}" />
+                    <Button Name="PriceUpLarge" MinWidth="48"
+                            Text="{Loc 'power-transmission-laser-ui-button-price-up-large'}" />
+                </BoxContainer>
+            </BoxContainer>
+            <Label Text="{Loc 'power-transmission-laser-ui-price-help'}"
+                   StyleClasses="LabelSubText" />
+        </BoxContainer>
+
+        <PanelContainer StyleClasses="LowDivider" />
+
+        <GridContainer Columns="2" VerticalExpand="True">
+            <Label Text="{Loc 'power-transmission-laser-ui-power'}" />
+            <Label Name="PowerValue" HorizontalAlignment="Right" />
+
+            <Label Text="{Loc 'power-transmission-laser-ui-max-power'}" />
+            <Label Name="MaxPowerValue" HorizontalAlignment="Right" />
+
+            <Label Text="{Loc 'power-transmission-laser-ui-energy'}" />
+            <Label Name="EnergyValue" HorizontalAlignment="Right" />
+
+            <Label Text="{Loc 'power-transmission-laser-ui-revenue'}" />
+            <Label Name="RevenueValue" HorizontalAlignment="Right" />
+
+            <Label Text="{Loc 'power-transmission-laser-ui-pending'}" />
+            <Label Name="PendingValue" HorizontalAlignment="Right" />
+
+            <Label Text="{Loc 'power-transmission-laser-ui-last'}" />
+            <Label Name="LastValue" HorizontalAlignment="Right" />
+
+            <Label Text="{Loc 'power-transmission-laser-ui-bank-status'}" />
+            <Label Name="BankValue" HorizontalAlignment="Right" />
+
+            <Label Text="{Loc 'power-transmission-laser-ui-apc-status'}" />
+            <Label Name="ApcValue" HorizontalAlignment="Right" />
+
+            <Label Text="{Loc 'power-transmission-laser-ui-anchor-status'}" />
+            <Label Name="AnchorValue" HorizontalAlignment="Right" />
+        </GridContainer>
+    </BoxContainer>
+</controls:FancyWindow>
