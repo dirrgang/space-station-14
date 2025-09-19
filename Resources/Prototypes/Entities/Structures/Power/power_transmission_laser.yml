@@ -14,11 +14,11 @@
     layers:
     - state: base
       map: ["enum.PowerTransmissionLaserVisualLayers.Base"]
-    - state: red_light
+    - state: indicator-unpowered
       shader: unshaded
       visible: false
       map: ["enum.PowerTransmissionLaserVisualLayers.Indicator"]
-    - state: firing
+    - state: beam
       shader: unshaded
       visible: false
       map: ["enum.PowerTransmissionLaserVisualLayers.Beam"]
@@ -32,13 +32,13 @@
           Idle: { state: "base" }
           Active: { state: "base" }
         enum.PowerTransmissionLaserVisualLayers.Indicator:
-          Unpowered: { state: "unpowered", visible: true }
-          Disabled: { state: "red_light", visible: true }
-          Idle: { state: "green_light", visible: true }
-          Active: { state: "green_light", visible: true }
+          Unpowered: { state: "indicator-unpowered", visible: true }
+          Disabled: { state: "indicator-disabled", visible: true }
+          Idle: { state: "indicator-enabled", visible: true }
+          Active: { state: "indicator-enabled", visible: true }
       enum.PowerDeviceVisuals.Powered:
         enum.PowerTransmissionLaserVisualLayers.Beam:
-          True: { state: "firing", visible: true }
+          True: { state: "beam", visible: true }
           False: { visible: false }
   - type: NodeContainer
     examinable: true
@@ -63,8 +63,8 @@
   - type: PowerMonitoringDevice
     group: Consumer
     loadNode: power
-    sprite: Structures/Power/power_transmission_laser.rsi
-    state: base
+    sprite: Structures/Power/power_transmission_laser_icon.rsi
+    state: icon
   - type: LitOnPowered
   - type: PointLight
     radius: 4
