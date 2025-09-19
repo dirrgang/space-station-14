@@ -71,6 +71,17 @@
   components:
   - type: DrowsinessStatusEffect
 
+- type: entity
+  parent: MobStatusEffectDebuff
+  id: StatusEffectFlashed
+  name: flashed
+  components:
+  - type: StatusEffect
+    whitelist:
+      components:
+      - MobState
+  - type: FlashedStatusEffect
+
 # Adds drugs overlay
 - type: entity
   parent: MobStatusEffectDebuff

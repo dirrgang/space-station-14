@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "size": {
+    "x": 96,
+    "y": 96
+  },
+  "license": "CC-BY-SA-3.0",
+  "copyright": "Taken from Paradise Station (https://github.com/ParadiseSS13/Paradise)",
+  "states": [
+    {
+      "name": "base",
+      "directions": 4
+    },
+    {
+      "name": "indicator-unpowered",
+      "directions": 4
+    },
+    {
+      "name": "indicator-disabled",
+      "directions": 4
+    },
+    {
+      "name": "indicator-enabled",
+      "directions": 4
+    },
+    {
+      "name": "beam",
+      "directions": 4,
+      "delays": [
+        [0.1, 0.1, 0.1, 0.1],
+        [0.1, 0.1, 0.1, 0.1],
+        [0.1, 0.1, 0.1, 0.1],
+        [0.1, 0.1, 0.1, 0.1]
+      ]
+    }
+  ]
+}

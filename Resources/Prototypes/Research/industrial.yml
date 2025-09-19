@@ -93,6 +93,7 @@
   - SolarControlComputerCircuitboard
   - SolarTrackerElectronics
   - EmitterCircuitboard
+  - PowerTransmissionLaserMachineCircuitboard
   radioChannels:
   - Engineering
 

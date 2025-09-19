@@ -776,6 +776,34 @@
       price: 58
 
 - type: entity
+  id: PowerTransmissionLaserMachineCircuitboard
+  parent: BaseMachineCircuitboard
+  name: power transmission laser machine board
+  description: A machine printed circuit board for a power transmission laser.
+  components:
+    - type: Sprite
+      sprite: Objects/Misc/module.rsi
+      state: engineering
+    - type: MachineBoard
+      prototype: PowerTransmissionLaser
+      stackRequirements:
+        Manipulator: 3
+        CableHV: 15
+        Capacitor: 2
+      componentRequirements:
+        PowerCell:
+          amount: 1
+          defaultPrototype: PowerCellHigh
+    - type: PhysicalComposition
+      materialComposition:
+        Glass: 250
+        Steel: 100
+      chemicalComposition:
+        Gold: 20
+    - type: StaticPrice
+      price: 180
+
+- type: entity
   parent: BaseMachineCircuitboard
   id: DawInstrumentMachineCircuitboard
   name: digital audio workstation machine board

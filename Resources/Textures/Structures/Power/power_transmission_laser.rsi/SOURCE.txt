@@ -1,0 +1,11 @@
+The Paradise Station artwork was exported from:
+    repository: https://github.com/ParadiseSS13/Paradise (commit 5285e0ad5250de34826bd86392dc5f9916611dd3)
+    file: icons/goonstation/objects/pt_laser.dmi
+    states used: ptl (base), unpowered (indicator-unpowered), red_light (indicator-disabled), green_light (indicator-enabled), firing (beam animation)
+
+Re-export the PNG frames from that DMI (e.g. via BYOND's sprite editor or dmi-stripper) and place them alongside this meta.json with the following filenames:
+    base.png
+    indicator-unpowered.png
+    indicator-disabled.png
+    indicator-enabled.png
+    beam.png
