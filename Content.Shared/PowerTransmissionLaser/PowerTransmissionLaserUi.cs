@@ -70,16 +70,40 @@ public sealed class PowerTransmissionLaserBuiState : BoundUserInterfaceState
 ///     Requests that the laser be enabled or disabled.
 /// </summary>
 [Serializable, NetSerializable]
-public sealed record PowerTransmissionLaserSetEnabledMessage(bool Enabled) : BoundUserInterfaceMessage;
+public sealed class PowerTransmissionLaserSetEnabledMessage : BoundUserInterfaceMessage
+{
+    public bool Enabled { get; }
+
+    public PowerTransmissionLaserSetEnabledMessage(bool enabled)
+    {
+        Enabled = enabled;
+    }
+}
 
 /// <summary>
 ///     Sets the price per exported megawatt.
 /// </summary>
 [Serializable, NetSerializable]
-public sealed record PowerTransmissionLaserSetPriceMessage(float Price) : BoundUserInterfaceMessage;
+public sealed class PowerTransmissionLaserSetPriceMessage : BoundUserInterfaceMessage
+{
+    public float Price { get; }
+
+    public PowerTransmissionLaserSetPriceMessage(float price)
+    {
+        Price = price;
+    }
+}
 
 /// <summary>
 ///     Adjusts the price by a relative delta.
 /// </summary>
 [Serializable, NetSerializable]
-public sealed record PowerTransmissionLaserAdjustPriceMessage(float Delta) : BoundUserInterfaceMessage;
+public sealed class PowerTransmissionLaserAdjustPriceMessage : BoundUserInterfaceMessage
+{
+    public float Delta { get; }
+
+    public PowerTransmissionLaserAdjustPriceMessage(float delta)
+    {
+        Delta = delta;
+    }
+}

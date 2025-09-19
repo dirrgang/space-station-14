@@ -4,8 +4,8 @@
                       SetSize="520 360"
                       Title="{Loc 'power-transmission-laser-ui-title'}"
                       Resizable="False">
-    <BoxContainer Orientation="Vertical" Separation="8" Margin="6">
-        <BoxContainer Orientation="Horizontal" Separation="6" VerticalAlignment="Top">
+    <BoxContainer Orientation="Vertical" SeparationOverride="8" Margin="6">
+        <BoxContainer Orientation="Horizontal" SeparationOverride="6" VerticalAlignment="Top">
             <CheckBox Name="EnabledCheckBox"
                       Text="{Loc 'power-transmission-laser-ui-toggle'}" />
             <Label Name="StatusLabel"
@@ -17,16 +17,14 @@
 
         <PanelContainer StyleClasses="LowDivider" />
 
-        <BoxContainer Orientation="Vertical" Separation="6">
+        <BoxContainer Orientation="Vertical" SeparationOverride="6">
             <Label Text="{Loc 'power-transmission-laser-ui-price-label'}"
                    StyleClasses="LabelKeyText" />
-            <BoxContainer Orientation="Horizontal" Separation="6">
+            <BoxContainer Orientation="Horizontal" SeparationOverride="6">
                 <FloatSpinBox Name="PriceSpinBox"
                               HorizontalExpand="True"
-                              Minimum="0"
-                              Value="5"
-                              AllowExpressions="False" />
-                <BoxContainer Orientation="Horizontal" Separation="4">
+                              Value="5" />
+                <BoxContainer Orientation="Horizontal" SeparationOverride="4">
                     <Button Name="PriceDownLarge" MinWidth="48"
                             Text="{Loc 'power-transmission-laser-ui-button-price-down-large'}" />
                     <Button Name="PriceDownSmall" MinWidth="48"

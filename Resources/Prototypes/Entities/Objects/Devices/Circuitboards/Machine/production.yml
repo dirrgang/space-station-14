@@ -789,7 +789,7 @@
       stackRequirements:
         Manipulator: 3
         CableHV: 15
-        Capacitor: 2
+        Glass: 5
       componentRequirements:
         PowerCell:
           amount: 1

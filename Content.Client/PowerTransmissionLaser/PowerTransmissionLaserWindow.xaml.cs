@@ -56,7 +56,7 @@ public sealed partial class PowerTransmissionLaserWindow : FancyWindow
         if (!MathHelper.CloseTo(clamped, args.Value))
         {
             _updatingControls = true;
-            PriceSpinBox.OverrideValue(clamped);
+            PriceSpinBox.Value = clamped;
             _updatingControls = false;
         }
 
@@ -75,7 +75,7 @@ public sealed partial class PowerTransmissionLaserWindow : FancyWindow
         EnabledCheckBox.Pressed = state.Enabled;
         EnabledCheckBox.Disabled = !state.Anchored;
 
-        PriceSpinBox.OverrideValue(state.PricePerMegawatt);
+        PriceSpinBox.Value = state.PricePerMegawatt;
 
         PriceDownSmall.Text = Loc.GetString("power-transmission-laser-ui-button-price-down-small", ("step", FormatStep(_stepSmall)));
         PriceUpSmall.Text = Loc.GetString("power-transmission-laser-ui-button-price-up-small", ("step", FormatStep(_stepSmall)));
