@@ -1,7 +1,9 @@
+using System;
 using Content.Shared.CCVar;
 using Content.Shared.Flash;
 using Content.Shared.Flash.Components;
-using Content.Shared.StatusEffect;
+using Content.Shared.StatusEffectNew;
+using Content.Shared.StatusEffectNew.Components;
 using Robust.Client.Graphics;
 using Robust.Client.Player;
 using Robust.Shared.Configuration;
@@ -48,17 +50,30 @@ namespace Content.Client.Flash
                 return;
 
             if (!_entityManager.HasComponent<FlashedComponent>(playerEntity)
-                || !_entityManager.TryGetComponent<StatusEffectsComponent>(playerEntity, out var status))
+                || !_entityManager.TryGetComponent<StatusEffectContainerComponent>(playerEntity, out var status))
                 return;
 
-            if (!_statusSys.TryGetTime(playerEntity.Value, _flash.FlashedKey, out var time, status))
+            if (!_statusSys.TryGetTime(playerEntity.Value, _flash.FlashedEffect, out var time, status))
                 return;
 
+            if (!_entityManager.TryGetComponent(time.EffectEnt, out FlashedStatusEffectComponent? effect))
+                return;
+
+            if (time.EndEffectTime is not { } endTime)
+                return;
+
+            var startTime = effect.StartTime;
             var curTime = _timing.CurTime;
-            var lastsFor = (float)(time.Value.Item2 - time.Value.Item1).TotalSeconds;
-            var timeDone = (float)(curTime - time.Value.Item1).TotalSeconds;
+            var lastsFor = (float)(endTime - startTime).TotalSeconds;
+            if (lastsFor <= 0f)
+            {
+                PercentComplete = 1f;
+                return;
+            }
 
-            PercentComplete = timeDone / lastsFor;
+            var timeDone = (float)(curTime - startTime).TotalSeconds;
+
+            PercentComplete = Math.Clamp(timeDone / lastsFor, 0f, 1f);
         }
 
         protected override bool BeforeDraw(in OverlayDrawArgs args)

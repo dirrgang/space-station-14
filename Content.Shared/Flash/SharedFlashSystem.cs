@@ -8,7 +8,8 @@ using Content.Shared.Interaction.Events;
 using Content.Shared.Inventory;
 using Content.Shared.Light;
 using Content.Shared.Popups;
-using Content.Shared.StatusEffect;
+using Content.Shared.StatusEffectNew;
+using Content.Shared.StatusEffectNew.Components;
 using Content.Shared.Stunnable;
 using Content.Shared.Tag;
 using Content.Shared.Timing;
@@ -40,14 +41,14 @@ public abstract class SharedFlashSystem : EntitySystem
     [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly UseDelaySystem _useDelay = default!;
 
-    private EntityQuery<StatusEffectsComponent> _statusEffectsQuery;
+    private EntityQuery<StatusEffectContainerComponent> _statusEffectsQuery;
     private EntityQuery<DamagedByFlashingComponent> _damagedByFlashingQuery;
     private HashSet<EntityUid> _entSet = new();
 
     // The tag to add when a flash has no charges left.
     private static readonly ProtoId<TagPrototype> TrashTag = "Trash";
     // The key string for the status effect.
-    public ProtoId<StatusEffectPrototype> FlashedKey = "Flashed";
+    public EntProtoId FlashedEffect = "StatusEffectFlashed";
 
     public override void Initialize()
     {
@@ -61,8 +62,12 @@ public abstract class SharedFlashSystem : EntitySystem
         Subs.SubscribeWithRelay<FlashImmunityComponent, FlashAttemptEvent>(OnFlashImmunityFlashAttempt, held: false);
         SubscribeLocalEvent<FlashImmunityComponent, ExaminedEvent>(OnExamine);
 
-        _statusEffectsQuery = GetEntityQuery<StatusEffectsComponent>();
+        _statusEffectsQuery = GetEntityQuery<StatusEffectContainerComponent>();
         _damagedByFlashingQuery = GetEntityQuery<DamagedByFlashingComponent>();
+
+        SubscribeLocalEvent<FlashedStatusEffectComponent, StatusEffectAppliedEvent>(OnFlashedStatusEffectApplied);
+        SubscribeLocalEvent<FlashedStatusEffectComponent, StatusEffectRemovedEvent>(OnFlashedStatusEffectRemoved);
+        SubscribeLocalEvent<FlashedStatusEffectComponent, StatusEffectEndTimeUpdatedEvent>(OnFlashedStatusEffectEndTimeUpdated);
     }
 
     private void OnFlashMeleeHit(Entity<FlashComponent> ent, ref MeleeHitEvent args)
@@ -161,7 +166,7 @@ public abstract class SharedFlashSystem : EntitySystem
             return;
 
         // don't paralyze, slowdown or convert to rev if the target is immune to flashes
-        if (!_statusEffectsSystem.TryAddStatusEffect<FlashedComponent>(target, FlashedKey, flashDuration, true))
+        if (!_statusEffectsSystem.TryUpdateStatusEffectDuration(target, FlashedEffect, flashDuration))
             return;
 
         if (stunDuration != null)
@@ -182,6 +187,40 @@ public abstract class SharedFlashSystem : EntitySystem
             RaiseLocalEvent(user.Value, ref ev);
         if (used != null)
             RaiseLocalEvent(used.Value, ref ev);
+    }
+
+    private void OnFlashedStatusEffectApplied(Entity<FlashedStatusEffectComponent> ent, ref StatusEffectAppliedEvent args)
+    {
+        if (_timing.ApplyingState)
+            return;
+
+        EnsureComp<FlashedComponent>(args.Target);
+
+        ent.Comp.StartTime = _timing.CurTime;
+        if (TryComp<StatusEffectComponent>(ent, out var status))
+            ent.Comp.LastEndTime = status.EndEffectTime;
+        else
+            ent.Comp.LastEndTime = null;
+
+        Dirty(ent);
+    }
+
+    private void OnFlashedStatusEffectRemoved(Entity<FlashedStatusEffectComponent> ent, ref StatusEffectRemovedEvent args)
+    {
+        RemCompDeferred<FlashedComponent>(args.Target);
+    }
+
+    private void OnFlashedStatusEffectEndTimeUpdated(Entity<FlashedStatusEffectComponent> ent, ref StatusEffectEndTimeUpdatedEvent args)
+    {
+        if (_timing.ApplyingState)
+            return;
+
+        if (ent.Comp.LastEndTime == args.EndTime)
+            return;
+
+        ent.Comp.LastEndTime = args.EndTime;
+        ent.Comp.StartTime = _timing.CurTime;
+        Dirty(ent);
     }
 
     /// <summary>

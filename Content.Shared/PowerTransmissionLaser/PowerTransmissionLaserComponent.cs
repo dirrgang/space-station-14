@@ -7,7 +7,7 @@ namespace Content.Shared.PowerTransmissionLaser;
 /// <summary>
 ///     Tracks the configuration and accounting data for a power transmission laser.
 /// </summary>
-[RegisterComponent, NetworkedComponent, AutoGenerateComponentState, AutoGenerateComponentPause]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class PowerTransmissionLaserComponent : Component
 {
     /// <summary>

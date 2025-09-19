@@ -7,12 +7,13 @@ using Content.Server.Station.Systems;
 using Content.Shared.Cargo.Components;
 using Content.Shared.Examine;
 using Content.Shared.Power;
+using Content.Shared.Movement.Systems;
 using Content.Shared.PowerTransmissionLaser;
 using Content.Shared.UserInterface;
 using Robust.Server.GameObjects;
+using Robust.Shared.GameObjects;
 using Robust.Shared.Localization;
 using Robust.Shared.Maths;
-using Robust.Shared.Player;
 using Robust.Shared.Timing;
 
 namespace Content.Server.PowerTransmissionLaser;
@@ -40,6 +41,9 @@ public sealed class PowerTransmissionLaserSystem : EntitySystem
 
         SubscribeLocalEvent<PowerTransmissionLaserComponent, ComponentInit>(OnInit);
         SubscribeLocalEvent<PowerTransmissionLaserComponent, PowerChangedEvent>(OnPowerChanged);
+        SubscribeLocalEvent<PowerTransmissionLaserComponent, AnchorStateChangedEvent>(OnAnchorStateChanged);
+        SubscribeLocalEvent<PowerTransmissionLaserComponent, BoundUIOpenedEvent>(OnUiOpened);
+        SubscribeLocalEvent<PowerTransmissionLaserComponent, EntityTerminatingEvent>(OnTerminating);
         SubscribeLocalEvent<PowerTransmissionLaserComponent, ExaminedEvent>(OnExamined);
 
         Subs.BuiEvents<PowerTransmissionLaserComponent>(
@@ -64,6 +68,36 @@ public sealed class PowerTransmissionLaserSystem : EntitySystem
         component.ApcPowered = args.Powered;
         component.UiDirty = true;
         TryUpdateAppearance(uid, component);
+    }
+
+    private void OnAnchorStateChanged(EntityUid uid, PowerTransmissionLaserComponent component, ref AnchorStateChangedEvent args)
+    {
+        if (!args.Anchored)
+        {
+            component.LaserActive = false;
+            component.LastPower = 0f;
+
+            if (TryComp(uid, out PowerConsumerComponent? consumer))
+                consumer.DrawRate = 0f;
+        }
+
+        component.UiDirty = true;
+        TryUpdateAppearance(uid, component);
+        TryUpdateUi(uid, component, args.Anchored, 0f, force: true);
+    }
+
+    private void OnUiOpened(Entity<PowerTransmissionLaserComponent> ent, ref BoundUIOpenedEvent args)
+    {
+        ent.Comp.UiDirty = true;
+        TryUpdateUi(ent.Owner, ent.Comp, Transform(ent.Owner).Anchored, 0f, force: true);
+    }
+
+    private void OnTerminating(EntityUid uid, PowerTransmissionLaserComponent component, ref EntityTerminatingEvent args)
+    {
+        if (component.PendingWholeCredits <= 0)
+            return;
+
+        TryDeposit(uid, component);
     }
 
     private void OnExamined(EntityUid uid, PowerTransmissionLaserComponent component, ExaminedEvent args)
@@ -177,7 +211,7 @@ public sealed class PowerTransmissionLaserSystem : EntitySystem
         var popup = Loc.GetString(args.Enabled
             ? "power-transmission-laser-popup-enabled"
             : "power-transmission-laser-popup-disabled");
-        _popup.PopupEntity(popup, ent.Owner, Filter.Entities(args.Actor));
+        _popup.PopupEntity(popup, ent.Owner, args.Actor);
     }
 
     private void HandleSetPrice(Entity<PowerTransmissionLaserComponent> ent, ref PowerTransmissionLaserSetPriceMessage args)
