@@ -1,0 +1,3 @@
+The monitoring icon was derived by scaling down the "ptl" state from icons/goonstation/objects/pt_laser.dmi in the Paradise repository (commit 5285e0ad5250de34826bd86392dc5f9916611dd3).
+
+Export that state and resize it to 32x32 before saving it as icon.png in this folder.

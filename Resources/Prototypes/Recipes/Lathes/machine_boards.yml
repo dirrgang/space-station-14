@@ -152,6 +152,11 @@
   result: SMESAdvancedMachineCircuitboard
 
 - type: latheRecipe
+  parent: [ BaseGoldCircuitboardRecipe, BaseEngineeringMachineRecipeCategory ]
+  id: PowerTransmissionLaserMachineCircuitboard
+  result: PowerTransmissionLaserMachineCircuitboard
+
+- type: latheRecipe
   parent: [ BaseCircuitboardRecipe, BaseEngineeringMachineRecipeCategory ]
   id: PortableGeneratorPacmanMachineCircuitboard
   result: PortableGeneratorPacmanMachineCircuitboard
