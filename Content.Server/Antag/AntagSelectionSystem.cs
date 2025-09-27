@@ -54,6 +54,7 @@ public sealed partial class AntagSelectionSystem : GameRuleSystem<AntagSelection
     [Dependency] private readonly TransformSystem _transform = default!;
     [Dependency] private readonly EntityWhitelistSystem _whitelist = default!;
     [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private readonly DynamicDifficultySystem _difficulty = default!;
 
     // arbitrary random number to give late joining some mild interest.
     public const float LateJoinRandomChance = 0.5f;
@@ -384,6 +385,14 @@ public sealed partial class AntagSelectionSystem : GameRuleSystem<AntagSelection
             set.Add(session);
             ent.Comp.AssignedSessions.Add(session);
 
+            if (_difficulty.Enabled && !_difficulty.TryReserveBudget(ent, def, session, out var reservedCost))
+            {
+                ent.Comp.AssignedSessions.Remove(session);
+                set.Remove(session);
+                _adminLogger.Add(LogType.AntagSelection, $"Skipped assigning {session.Name} as antagonist: {ToPrettyString(ent)} due to insufficient dynamic difficulty budget (needed {reservedCost:0.##}).");
+                return;
+            }
+
             // we shouldn't be blocking the entity if they're just a ghost or smth.
             if (!HasComp<GhostComponent>(session.AttachedEntity))
                 antagEnt = session.AttachedEntity;
@@ -475,6 +484,8 @@ public sealed partial class AntagSelectionSystem : GameRuleSystem<AntagSelection
             _mind.TransferTo(curMind.Value, antagEnt, ghostCheckOverride: true);
             _role.MindAddRoles(curMind.Value, def.MindRoles, null, true);
             ent.Comp.AssignedMinds.Add((curMind.Value, Name(player)));
+            if (_difficulty.Enabled)
+                _difficulty.BindAntagMind(ent.Owner, session.UserId, curMind.Value);
             SendBriefing(session, def.Briefing);
 
             Log.Debug($"Assigned {ToPrettyString(curMind)} as antagonist: {ToPrettyString(ent)}");

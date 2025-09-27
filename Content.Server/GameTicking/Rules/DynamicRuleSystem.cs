@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using Content.Server.Administration.Logs;
 using Content.Server.RoundEnd;
@@ -17,21 +18,21 @@ public sealed class DynamicRuleSystem : GameRuleSystem<DynamicRuleComponent>
     [Dependency] private readonly EntityTableSystem _entityTable = default!;
     [Dependency] private readonly RoundEndSystem _roundEnd = default!;
     [Dependency] private readonly IRobustRandom _random = default!;
+    [Dependency] private readonly DynamicDifficultySystem _difficulty = default!;
 
     protected override void Added(EntityUid uid, DynamicRuleComponent component, GameRuleComponent gameRule, GameRuleAddedEvent args)
     {
         base.Added(uid, component, gameRule, args);
 
-        component.Budget = _random.Next(component.StartingBudgetMin, component.StartingBudgetMax);;
+        component.Budget = _random.Next(component.StartingBudgetMin, component.StartingBudgetMax);
         component.NextRuleTime = Timing.CurTime + _random.Next(component.MinRuleInterval, component.MaxRuleInterval);
+        _difficulty.OnRuleAdded(uid);
     }
 
     protected override void Started(EntityUid uid, DynamicRuleComponent component, GameRuleComponent gameRule, GameRuleStartedEvent args)
     {
         base.Started(uid, component, gameRule, args);
 
-        // Since we don't know how long until this rule is activated, we need to
-        // set the last budget update to now so it doesn't immediately give the component a bunch of points.
         component.LastBudgetUpdate = Timing.CurTime;
         Execute((uid, component));
     }
@@ -44,6 +45,8 @@ public sealed class DynamicRuleSystem : GameRuleSystem<DynamicRuleComponent>
         {
             GameTicker.EndGameRule(rule);
         }
+
+        _difficulty.OnRuleEnded(uid, component);
     }
 
     protected override void ActiveTick(EntityUid uid, DynamicRuleComponent component, GameRuleComponent gameRule, float frameTime)
@@ -53,20 +56,15 @@ public sealed class DynamicRuleSystem : GameRuleSystem<DynamicRuleComponent>
         if (Timing.CurTime < component.NextRuleTime)
             return;
 
-        // don't spawn antags during evac
         if (_roundEnd.IsRoundEndRequested())
             return;
 
         Execute((uid, component));
     }
 
-    /// <summary>
-    /// Generates and returns a list of randomly selected,
-    /// valid rules to spawn based on <see cref="DynamicRuleComponent.Table"/>.
-    /// </summary>
     private IEnumerable<EntProtoId> GetRuleSpawns(Entity<DynamicRuleComponent> entity)
     {
-        UpdateBudget((entity.Owner, entity.Comp));
+        _difficulty.ApplyBudgetGain(entity);
         var ctx = new EntityTableContext(new Dictionary<string, object>
         {
             { HasBudgetCondition.BudgetContextKey, entity.Comp.Budget },
@@ -75,24 +73,11 @@ public sealed class DynamicRuleSystem : GameRuleSystem<DynamicRuleComponent>
         return _entityTable.GetSpawns(entity.Comp.Table, ctx: ctx);
     }
 
-    /// <summary>
-    /// Updates the budget of the provided dynamic rule component based on the amount of time since the last update
-    /// multiplied by the <see cref="DynamicRuleComponent.BudgetPerSecond"/> value.
-    /// </summary>
     private void UpdateBudget(Entity<DynamicRuleComponent> entity)
     {
-        var duration = (float) (Timing.CurTime - entity.Comp.LastBudgetUpdate).TotalSeconds;
-
-        entity.Comp.Budget += duration * entity.Comp.BudgetPerSecond;
-        entity.Comp.LastBudgetUpdate = Timing.CurTime;
+        _difficulty.ApplyBudgetGain(entity);
     }
 
-    /// <summary>
-    /// Executes this rule, generating new dynamic rules and starting them.
-    /// </summary>
-    /// <returns>
-    /// Returns a list of the rules that were executed.
-    /// </returns>
     private List<EntityUid> Execute(Entity<DynamicRuleComponent> entity)
     {
         entity.Comp.NextRuleTime =
@@ -193,3 +178,4 @@ public sealed class DynamicRuleSystem : GameRuleSystem<DynamicRuleComponent>
 
     #endregion
 }
+
