@@ -91,6 +91,9 @@ namespace Content.Server.Administration.Systems
 
             var player = actor.PlayerSession;
 
+            AddThreatDebugVerb(args, player);
+
+
             if (_adminManager.IsAdmin(player))
             {
                 Verb mark = new();
