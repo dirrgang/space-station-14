@@ -1,0 +1,47 @@
+# Default profile used by security-aligned logic (bots, scanners, etc.).
+# Scores roughly mimic TG-style securitron judgement.
+- type: threatProfile
+  id: ThreatProfileSecurity
+  baseThreat: 0
+  missingIdThreat: 12
+  anonymousThreat: 8
+  combatModeThreat: 6
+  minimumScore: 0
+  maximumScore: 100
+  tokenMultiplier: 1
+  unknownTokenPenalty: 0
+  securityStatusWeights:
+    Wanted: 50
+    Suspected: 18
+    Paroled: 4
+    Discharged: 2
+  jobWeights:
+    SecurityOfficer: -10
+    SecurityCadet: -6
+    Warden: -8
+    Detective: -7
+    HeadOfSecurity: -15
+  departmentWeights:
+    Security: -5
+  tagWeights:
+    Syndicate: 35
+    Revolutionary: 25
+  tokenWeights:
+    weapon:
+      base: 5
+      held: 4
+      wielded: 8
+      inventory: 2
+      maxStacks: 4
+    weapon-gun:
+      base: 8
+      held: 6
+      wielded: 12
+      inventory: 5
+      maxStacks: 3
+    weapon-melee:
+      base: 3
+      held: 3
+      wielded: 7
+      inventory: 1
+      maxStacks: 4
