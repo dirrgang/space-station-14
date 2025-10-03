@@ -29,8 +29,12 @@
       0: Alive
       45: Critical
       65: Dead
+  - type: Food
+    requireDead: true
+    transferAmount: 2
   - type: MovementSpeedModifier
     baseSprintSpeed : 5 # extra speed for that moppin'!
+  - type: NoSlip
   - type: HTN
     rootTask:
       task: MoproachCompound
@@ -111,3 +115,4 @@
   components:
   - type: Paper
     content: book-text-moproach
+

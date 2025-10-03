@@ -482,7 +482,7 @@
 
 - type: entity
   name: mothroach
-  parent: MobCockroach
+  parent: SimpleMobBase
   id: MobMothroach
   description: This is the adorable by-product of multiple attempts at genetically mixing mothpeople with cockroaches.
   components:
@@ -494,6 +494,11 @@
     - Moffic
     - Mothroach
   # Starlight-end
+  - type: VentCrawler
+  - type: HTN
+    constantlyReplan: false
+    rootTask:
+      task: MouseCompound
   - type: GhostRole
     makeSentient: true
     allowSpeech: true
@@ -523,6 +528,7 @@
     insertingState: inserting_mothroach
   - type: MothAccent
   - type: Sprite
+    drawdepth: SmallMobs
     sprite: Mobs/Animals/mothroach/mothroach.rsi
     layers:
     - map: ["enum.DamageStateVisualLayers.Base", "movement"]
@@ -551,6 +557,7 @@
         Base: mothroach_dead
       Dead:
         Base: mothroach_dead
+  - type: MobState
   - type: MobThresholds
     thresholds:
       0: Alive
@@ -567,6 +574,7 @@
     damageModifierSet: Moth
   - type: Bloodstream
     bloodReagent: InsectBlood
+    bloodMaxVolume: 50
   - type: Respirator
     damage:
       types:
@@ -575,12 +583,34 @@
       types:
         Asphyxiation: -0.5
   - type: CombatMode
+  - type: MeleeWeapon
+    soundHit:
+      path: /Audio/Effects/bite.ogg
+    damage:
+      types:
+        Piercing: 0
+  - type: Food
+    requireDead: true
+    transferAmount: 2
+  - type: FlavorProfile
+    flavors:
+    - horrible
+    - terrible
+    - chewy
+  - type: Hunger
+    baseDecayRate: 0.25
+  - type: Extractable
+    grindableSolutionName: food
+  - type: SolutionContainerManager
+    solutions:
+      food:
+        reagents:
+        - ReagentId: Slime
+          Quantity: 5
   - type: Butcherable
     spawned:
     - id: FoodMeatSlime
       amount: 2
-  - type: Extractable
-    grindableSolutionName: food
   - type: ZombieAccentOverride
     accent: zombieMoth
   - type: Vocal
@@ -591,6 +621,7 @@
     wilhelmProbability: 0.001
   - type: MobPrice
     price: 150
+  - type: BadFood
   - type: Tag
     tags:
     - Trash
@@ -3938,3 +3969,4 @@
   - type: NpcFactionMember
     factions:
     - NanoTrasen
+
