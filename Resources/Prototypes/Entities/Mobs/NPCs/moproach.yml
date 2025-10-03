@@ -27,13 +27,14 @@
   - type: MobThresholds
     thresholds:
       0: Alive
-      45: Critical
-      65: Dead
+      60: Critical
+      95: Dead
   - type: Food
     requireDead: true
-    transferAmount: 2
+    transferAmount: 4
   - type: MovementSpeedModifier
-    baseSprintSpeed : 5 # extra speed for that moppin'!
+    baseWalkSpeed: 2.6
+    baseSprintSpeed: 5 # extra speed for that moppin'!
   - type: NoSlip
   - type: HTN
     rootTask:
@@ -58,14 +59,26 @@
       absorbed:
         maxVol: 50
       food:
+        maxVol: 140
         reagents:
-        - ReagentId: Slime
-          Quantity: 5
+          - ReagentId: Nutriment
+            Quantity: 12
+          - ReagentId: Protein
+            Quantity: 6
+          - ReagentId: InsectBlood
+            Quantity: 90
+          - ReagentId: Slime
+            Quantity: 8
   - type: DrainableSolution
     solution: drainBuffer
   - type: InteractionPopup
+    successChance: 0.9
+    interactDelay: 1
     interactSuccessString: petting-success-cleanbot
     interactFailureString: petting-failure-cleanbot
+    interactSuccessSpawn: EffectHearts
+    interactSuccessSound:
+      path: /Audio/Ambience/Objects/periodic_beep.ogg
 
 - type: entity
   parent: MobMoproach
