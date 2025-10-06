@@ -1,7 +1,8 @@
-securitron-threat-detected = Halt! Security! Drop any weapons and submit to inspection!
-securitron-say-halt = Halt! Security! Drop any weapons and submit to inspection!
-securitron-say-standby = Please wait while a security officer comes to escort you.
-securitron-say-fleeing = Suspect attempting to flee. Engaging!
+securitron-threat-detected = You are wanted. Halt and drop any weapons!
+securitron-say-halt = You are wanted. Halt and drop any weapons!
+securitron-say-arrest = You are under arrest.
+securitron-say-standby = Wait here until a security officer comes to escort you.
+securitron-say-fleeing = Stop resisting!
 securitron-radio-location = Security alert: wanted individual spotted at { $location }.
 securitron-radio-fleeing = Security alert: suspect attempting to flee at { $location }.
 securitron-radio-downed = Security update: suspect subdued at { $location }.

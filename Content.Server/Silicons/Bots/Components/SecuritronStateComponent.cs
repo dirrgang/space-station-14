@@ -14,10 +14,13 @@ public sealed partial class SecuritronStateComponent : Component
     public bool ReportedFleeing;
     public bool ReportedDowned;
     public bool ReportedCuffed;
+    public bool AnnouncedArrest;
+    public bool RequiresSubdual;
     public bool CuffInProgress;
     public float ClosestDistance = float.MaxValue;
     public Vector2? LastKnownTargetPosition;
     public TimeSpan NextCuffAttempt;
+    public TimeSpan CuffDeadline;
     public TimeSpan NextSpeechTime;
 }
 

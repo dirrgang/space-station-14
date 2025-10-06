@@ -18,6 +18,7 @@ using Content.Shared.Silicons.Bots;
 using Content.Shared.Silicons.Bots.Components;
 using Content.Shared.Radio;
 using Content.Shared.Stunnable;
+using Content.Shared.Administration.Components;
 using Robust.Server.GameObjects;
 using Robust.Shared.Log;
 using Robust.Shared.GameObjects;
@@ -118,7 +119,7 @@ public sealed partial class SecuritronSystem : EntitySystem
                            || HasComp<StunnedComponent>(target);
 
         var fleeThreshold = Math.Max(FleeRange, state.ClosestDistance + 1f);
-        var fleeing = distance > fleeThreshold && (targetMoved || state.TargetFleeing);
+        var fleeing = state.RequiresSubdual || (distance > fleeThreshold && (targetMoved || state.TargetFleeing));
 
         if (targetDowned || targetCuffed)
             fleeing = false;
@@ -129,21 +130,28 @@ public sealed partial class SecuritronSystem : EntitySystem
             htn.Blackboard.SetValue(NPCBlackboard.SecuritronTargetFleeingKey, fleeing);
 
             if (fleeing)
-                OnSuspectFleeing(uid, state);
+                BeginCombat(uid, state, htn, now);
+        }
+
+        if (state.TargetStatus == SecuritronTargetTrackingState.Cuffed && !targetCuffed)
+        {
+            _sawmill.Debug($"Cuffs removed from {ToPrettyString(target)} while monitored by {ToPrettyString(uid)}; re-engaging.");
+            state.ReportedCuffed = false;
+            BeginCombat(uid, state, htn, now);
         }
 
         // Drive audible callouts and movement decisions from the engagement state machine.
         switch (state.TargetStatus)
         {
             case SecuritronTargetTrackingState.Announced when inRange:
-                AnnounceStandby(uid, state, now);
+                AnnounceArrest(uid, state, now);
                 break;
             case SecuritronTargetTrackingState.Standby when state.TargetFleeing:
                 state.TargetStatus = SecuritronTargetTrackingState.Engaging;
                 break;
             case SecuritronTargetTrackingState.Engaging when !state.TargetFleeing:
                 if (inRange)
-                    AnnounceStandby(uid, state, now);
+                    AnnounceArrest(uid, state, now);
                 else
                     state.TargetStatus = SecuritronTargetTrackingState.Announced;
                 break;
@@ -158,6 +166,9 @@ public sealed partial class SecuritronSystem : EntitySystem
         {
             _sawmill.Debug($"Target {ToPrettyString(target)} recovered before cuffing by {ToPrettyString(uid)}; resuming pursuit.");
             state.CuffInProgress = false;
+            state.CuffDeadline = TimeSpan.Zero;
+            state.NextCuffAttempt = now;
+            state.AnnouncedArrest = false;
             state.TargetStatus = state.TargetFleeing
                 ? SecuritronTargetTrackingState.Engaging
                 : (inRange ? SecuritronTargetTrackingState.Standby : SecuritronTargetTrackingState.Announced);
@@ -174,22 +185,52 @@ public sealed partial class SecuritronSystem : EntitySystem
         // Track whether we are close enough to physically restrain the suspect.
         var withinCuffRange = distance <= StandbyRange;
 
-        if (state.TargetStatus >= SecuritronTargetTrackingState.Downed &&
-            state.TargetStatus < SecuritronTargetTrackingState.Cuffed &&
-            !targetCuffed)
+        if (state.CuffInProgress && !targetCuffed)
         {
             if (!withinCuffRange)
             {
-                state.CuffInProgress = false;
-                state.NextCuffAttempt = now;
-            }
-            else
-            {
-                if (state.CuffInProgress && now >= state.NextCuffAttempt)
+                if (targetMoved)
+                {
+                    _sawmill.Debug($"{ToPrettyString(target)} moved out of cuffing range of {ToPrettyString(uid)}; entering combat.");
+                    BeginCombat(uid, state, htn, now);
+                }
+                else
+                {
                     state.CuffInProgress = false;
-
-                TryStartCuff(uid, state, target);
+                    state.CuffDeadline = TimeSpan.Zero;
+                    state.NextCuffAttempt = now;
+                }
             }
+            else if (targetMoved && state.TargetStatus == SecuritronTargetTrackingState.Standby)
+            {
+                _sawmill.Debug($"Target {ToPrettyString(target)} interrupted cuffing by moving; entering combat.");
+                BeginCombat(uid, state, htn, now);
+            }
+            else if (state.CuffDeadline != TimeSpan.Zero && now >= state.CuffDeadline && state.TargetStatus < SecuritronTargetTrackingState.Downed)
+            {
+                _sawmill.Debug($"Cuff attempt timed out for {ToPrettyString(uid)} targeting {ToPrettyString(target)}; entering combat.");
+                BeginCombat(uid, state, htn, now);
+            }
+        }
+
+        if (!targetCuffed &&
+            (state.TargetStatus == SecuritronTargetTrackingState.Standby ||
+             state.TargetStatus == SecuritronTargetTrackingState.Downed))
+        {
+            if (withinCuffRange)
+            {
+                if (!state.CuffInProgress && now >= state.NextCuffAttempt)
+                    TryStartCuff(uid, state, target, now);
+            }
+            else if (state.CuffInProgress)
+            {
+                BeginCombat(uid, state, htn, now);
+            }
+        }
+        else if (targetCuffed)
+        {
+            state.CuffInProgress = false;
+            state.CuffDeadline = TimeSpan.Zero;
         }
 
         // Only mark the target as subdued once they are restrained (or we are actively cuffing them).
@@ -212,11 +253,14 @@ public sealed partial class SecuritronSystem : EntitySystem
         state.ReportedFleeing = false;
         state.ReportedDowned = false;
         state.ReportedCuffed = false;
+        state.AnnouncedArrest = false;
+        state.RequiresSubdual = false;
         state.NextSpeechTime = now;
         state.ClosestDistance = float.MaxValue;
         state.LastKnownTargetPosition = null;
         state.CuffInProgress = false;
         state.NextCuffAttempt = TimeSpan.Zero;
+        state.CuffDeadline = TimeSpan.Zero;
 
         _sawmill.Debug($"Acquired target {ToPrettyString(target)} for {ToPrettyString(uid)} at {state.LastKnownTargetPosition}.");
 
@@ -242,10 +286,13 @@ public sealed partial class SecuritronSystem : EntitySystem
         state.ReportedFleeing = false;
         state.ReportedDowned = false;
         state.ReportedCuffed = false;
+        state.AnnouncedArrest = false;
+        state.RequiresSubdual = false;
         state.ClosestDistance = float.MaxValue;
         state.LastKnownTargetPosition = null;
         state.CuffInProgress = false;
         state.NextCuffAttempt = TimeSpan.Zero;
+        state.CuffDeadline = TimeSpan.Zero;
 
         _sawmill.Debug($"Resetting target state for {ToPrettyString(uid)}.");
 
@@ -253,29 +300,49 @@ public sealed partial class SecuritronSystem : EntitySystem
         SetTargetSubdued(htn, false);
     }
 
-    private void AnnounceStandby(EntityUid uid, SecuritronStateComponent state, TimeSpan now)
+    private void AnnounceArrest(EntityUid uid, SecuritronStateComponent state, TimeSpan now)
     {
         if (state.TargetStatus == SecuritronTargetTrackingState.Standby)
             return;
 
         state.TargetStatus = SecuritronTargetTrackingState.Standby;
-        Speak(uid, state, "securitron-say-standby", now, force: true);
     }
 
-    private void OnSuspectFleeing(EntityUid uid, SecuritronStateComponent state)
+    private void BeginCombat(EntityUid uid, SecuritronStateComponent state, HTNComponent htn, TimeSpan now)
     {
-        if (state.ReportedFleeing)
+        if (state.TargetStatus == SecuritronTargetTrackingState.Engaging && state.TargetFleeing)
             return;
 
-        state.ReportedFleeing = true;
+        state.CuffInProgress = false;
+        state.CuffDeadline = TimeSpan.Zero;
+        state.NextCuffAttempt = now + TimeSpan.FromSeconds(1);
+        state.AnnouncedArrest = false;
+        state.RequiresSubdual = true;
+
+        if (!state.TargetFleeing)
+        {
+            state.TargetFleeing = true;
+            htn.Blackboard.SetValue(NPCBlackboard.SecuritronTargetFleeingKey, true);
+        }
+
         state.TargetStatus = SecuritronTargetTrackingState.Engaging;
+        state.ReportedDowned = false;
 
-        _sawmill.Debug($"Target fleeing from {ToPrettyString(uid)}; switching to Engage state.");
+        if (state.CurrentTarget != null && !Deleted(state.CurrentTarget.Value))
+            _sawmill.Debug($"Suspect {ToPrettyString(state.CurrentTarget.Value)} resisting {ToPrettyString(uid)}; entering combat mode.");
+        else
+            _sawmill.Debug($"Suspect resisting {ToPrettyString(uid)}; entering combat mode.");
 
-        Speak(uid, state, "securitron-say-fleeing", _timing.CurTime, force: true);
+        Speak(uid, state, "securitron-say-fleeing", now, force: true);
 
-        var location = FormatLocation(uid);
-        SendSecurityRadio(uid, "securitron-radio-fleeing", location);
+        if (!state.ReportedFleeing)
+        {
+            var location = FormatLocation(uid);
+            SendSecurityRadio(uid, "securitron-radio-fleeing", location);
+            state.ReportedFleeing = true;
+        }
+
+        SetTargetSubdued(htn, false);
     }
 
 
@@ -283,7 +350,11 @@ public sealed partial class SecuritronSystem : EntitySystem
     {
         StopCombat(uid);
         state.CuffInProgress = false;
+        state.CuffDeadline = TimeSpan.Zero;
         state.NextCuffAttempt = _timing.CurTime;
+        state.AnnouncedArrest = false;
+        state.RequiresSubdual = false;
+        state.TargetFleeing = false;
 
         if (state.ReportedDowned)
             return;
@@ -293,14 +364,17 @@ public sealed partial class SecuritronSystem : EntitySystem
         state.ReportedDowned = true;
         var location = FormatLocation(uid);
         SendSecurityRadio(uid, "securitron-radio-downed", location);
-
-        Speak(uid, state, "securitron-say-standby", _timing.CurTime, force: true);
     }
 
     private void OnSuspectCuffed(EntityUid uid, SecuritronStateComponent state)
     {
         StopCombat(uid);
         state.CuffInProgress = false;
+        state.CuffDeadline = TimeSpan.Zero;
+        state.NextCuffAttempt = TimeSpan.Zero;
+        state.AnnouncedArrest = false;
+        state.RequiresSubdual = false;
+        state.TargetFleeing = false;
 
         if (state.ReportedCuffed)
             return;
@@ -308,8 +382,10 @@ public sealed partial class SecuritronSystem : EntitySystem
         _sawmill.Debug($"Target cuffed by {ToPrettyString(uid)}; broadcasting status.");
 
         state.ReportedCuffed = true;
+        state.ReportedFleeing = false;
         var location = FormatLocation(uid);
         SendSecurityRadio(uid, "securitron-radio-cuffed", location);
+        Speak(uid, state, "securitron-say-standby", _timing.CurTime, force: true);
     }
 
     private void UpdateVisual(EntityUid uid, SecuritronComponent component, AppearanceComponent appearance)
@@ -329,18 +405,22 @@ public sealed partial class SecuritronSystem : EntitySystem
     /// <summary>
     /// Starts (or resumes) the cuffing do-after once the securitron is in range and hands are prepared.
     /// </summary>
-    private void TryStartCuff(EntityUid uid, SecuritronStateComponent state, EntityUid target)
+    private void TryStartCuff(EntityUid uid, SecuritronStateComponent state, EntityUid target, TimeSpan now)
     {
-        var now = _timing.CurTime;
-
-        if (state.CuffInProgress && now < state.NextCuffAttempt)
+        if (state.CuffInProgress)
         {
-            _sawmill.Debug($"Cuff do-after still pending for {ToPrettyString(uid)} targeting {ToPrettyString(target)}.");
+            if (now < state.NextCuffAttempt)
+            {
+                _sawmill.Debug($"Cuff do-after still pending for {ToPrettyString(uid)} targeting {ToPrettyString(target)}.");
+                return;
+            }
+
+            state.CuffInProgress = false;
+        }
+        else if (now < state.NextCuffAttempt)
+        {
             return;
         }
-
-        if (state.CuffInProgress && now >= state.NextCuffAttempt)
-            state.CuffInProgress = false;
 
         if (!TryComp(target, out CuffableComponent? cuffable) || cuffable.CuffedHandCount >= 2)
         {
@@ -385,17 +465,42 @@ public sealed partial class SecuritronSystem : EntitySystem
             }
         }
 
-        state.CuffInProgress = true;
-        state.NextCuffAttempt = now + TimeSpan.FromSeconds(3);
+        if (!TryComp(cuffs.Value, out HandcuffComponent? handcuff))
+        {
+            _sawmill.Warning($"{ToPrettyString(uid)} attempted to cuff without a valid handcuff component on {ToPrettyString(cuffs.Value)}.");
+            state.NextCuffAttempt = now + TimeSpan.FromSeconds(1);
+            return;
+        }
+
+        var expectedSeconds = handcuff.CuffTime;
+
+        if (HasComp<StunnedComponent>(target))
+            expectedSeconds = MathF.Max(0.1f, expectedSeconds - handcuff.StunBonus);
+
+        if (HasComp<DisarmProneComponent>(target))
+            expectedSeconds = 0f;
 
         if (!_cuffable.TryCuffing(uid, target, cuffs.Value))
         {
             state.CuffInProgress = false;
+            state.CuffDeadline = TimeSpan.Zero;
+            state.NextCuffAttempt = now + TimeSpan.FromSeconds(1);
             _sawmill.Debug($"Cuff do-after could not start for {ToPrettyString(uid)} targeting {ToPrettyString(target)}.");
+            return;
         }
-        else
+
+        state.CuffInProgress = true;
+        state.CuffDeadline = expectedSeconds <= 0f
+            ? now
+            : now + TimeSpan.FromSeconds(expectedSeconds + 0.25f);
+        state.NextCuffAttempt = state.CuffDeadline + TimeSpan.FromSeconds(1);
+
+        _sawmill.Debug($"Cuff do-after started for {ToPrettyString(uid)} targeting {ToPrettyString(target)}; expected duration {expectedSeconds:0.##}s.");
+
+        if (!state.AnnouncedArrest)
         {
-            _sawmill.Debug($"Cuff do-after started for {ToPrettyString(uid)} targeting {ToPrettyString(target)}.");
+            Speak(uid, state, "securitron-say-arrest", now, force: true);
+            state.AnnouncedArrest = true;
         }
     }
 
