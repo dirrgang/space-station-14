@@ -15,9 +15,3 @@ public enum SecuritronVisualState
     Combat,
 }
 
-[Serializable, NetSerializable]
-public enum SecuritronOperatingMode
-{
-    Arrest,
-    Detain,
-}

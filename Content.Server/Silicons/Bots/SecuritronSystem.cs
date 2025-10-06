@@ -14,12 +14,10 @@ using Content.Shared.Hands.Components;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Mobs;
 using Content.Shared.Mobs.Components;
-using Content.Shared.Popups;
 using Content.Shared.Silicons.Bots;
 using Content.Shared.Silicons.Bots.Components;
 using Content.Shared.Radio;
 using Content.Shared.Stunnable;
-using Content.Shared.Verbs;
 using Robust.Server.GameObjects;
 using Robust.Shared.Log;
 using Robust.Shared.GameObjects;
@@ -39,7 +37,6 @@ public sealed partial class SecuritronSystem : EntitySystem
     private readonly ISawmill _sawmill = Logger.GetSawmill("securitron");
 
     [Dependency] private readonly AppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
     [Dependency] private readonly ChatSystem _chat = default!;
     [Dependency] private readonly RadioSystem _radio = default!;
     [Dependency] private readonly SharedTransformSystem _transform = default!;
@@ -63,7 +60,6 @@ public sealed partial class SecuritronSystem : EntitySystem
             _sawmill.Error($"Failed to find security radio channel prototype '{_securityChannelId}'. Securitrons will be unable to send status updates over radio.");
         }
 
-        SubscribeLocalEvent<SecuritronComponent, GetVerbsEvent<AlternativeVerb>>(OnGetAlternativeVerbs);
     }
 
     public override void Update(float frameTime)
@@ -76,15 +72,12 @@ public sealed partial class SecuritronSystem : EntitySystem
         {
             var state = EnsureComp<SecuritronStateComponent>(uid);
 
-            var detain = component.OperatingMode == SecuritronOperatingMode.Detain;
-            htn.Blackboard.SetValue(NPCBlackboard.SecuritronDetainModeKey, detain);
-
-            HandleTarget(uid, component, state, htn, now);
+            HandleTarget(uid, state, htn, now);
             UpdateVisual(uid, component, appearance);
         }
     }
 
-    private void HandleTarget(EntityUid uid, SecuritronComponent component, SecuritronStateComponent state, HTNComponent htn, TimeSpan now)
+    private void HandleTarget(EntityUid uid, SecuritronStateComponent state, HTNComponent htn, TimeSpan now)
     {
         // Keep chasing the same suspect even if the planner clears out the blackboard entry between ticks.
         if (!htn.Blackboard.TryGetValue<EntityUid>("Target", out var target, EntityManager) || Deleted(target))
@@ -181,8 +174,7 @@ public sealed partial class SecuritronSystem : EntitySystem
         // Track whether we are close enough to physically restrain the suspect.
         var withinCuffRange = distance <= StandbyRange;
 
-        if (component.OperatingMode == SecuritronOperatingMode.Arrest &&
-            state.TargetStatus >= SecuritronTargetTrackingState.Downed &&
+        if (state.TargetStatus >= SecuritronTargetTrackingState.Downed &&
             state.TargetStatus < SecuritronTargetTrackingState.Cuffed &&
             !targetCuffed)
         {
@@ -203,9 +195,7 @@ public sealed partial class SecuritronSystem : EntitySystem
         // Only mark the target as subdued once they are restrained (or we are actively cuffing them).
         var targetSubdued = state.TargetStatus switch
         {
-            SecuritronTargetTrackingState.Downed => targetCuffed || (component.OperatingMode == SecuritronOperatingMode.Arrest
-                ? (withinCuffRange && state.CuffInProgress)
-                : withinCuffRange),
+            SecuritronTargetTrackingState.Downed => targetCuffed || (withinCuffRange && state.CuffInProgress),
             SecuritronTargetTrackingState.Cuffed => true,
             SecuritronTargetTrackingState.Standby => !state.TargetFleeing,
             _ => false,
@@ -269,7 +259,7 @@ public sealed partial class SecuritronSystem : EntitySystem
             return;
 
         state.TargetStatus = SecuritronTargetTrackingState.Standby;
-        Speak(uid, state, "securitron-say-standby", now);
+        Speak(uid, state, "securitron-say-standby", now, force: true);
     }
 
     private void OnSuspectFleeing(EntityUid uid, SecuritronStateComponent state)
@@ -282,7 +272,7 @@ public sealed partial class SecuritronSystem : EntitySystem
 
         _sawmill.Debug($"Target fleeing from {ToPrettyString(uid)}; switching to Engage state.");
 
-        Speak(uid, state, "securitron-say-fleeing", _timing.CurTime);
+        Speak(uid, state, "securitron-say-fleeing", _timing.CurTime, force: true);
 
         var location = FormatLocation(uid);
         SendSecurityRadio(uid, "securitron-radio-fleeing", location);
@@ -303,6 +293,8 @@ public sealed partial class SecuritronSystem : EntitySystem
         state.ReportedDowned = true;
         var location = FormatLocation(uid);
         SendSecurityRadio(uid, "securitron-radio-downed", location);
+
+        Speak(uid, state, "securitron-say-standby", _timing.CurTime, force: true);
     }
 
     private void OnSuspectCuffed(EntityUid uid, SecuritronStateComponent state)
@@ -410,9 +402,9 @@ public sealed partial class SecuritronSystem : EntitySystem
     /// <summary>
     /// Sends localized speech (or emotes) while throttling repeat lines.
     /// </summary>
-    private void Speak(EntityUid uid, SecuritronStateComponent state, string key, TimeSpan now)
+    private void Speak(EntityUid uid, SecuritronStateComponent state, string key, TimeSpan now, bool force = false)
     {
-        if (now < state.NextSpeechTime)
+        if (!force && now < state.NextSpeechTime)
             return;
 
         var message = Loc.GetString(key);
@@ -475,41 +467,5 @@ public sealed partial class SecuritronSystem : EntitySystem
         _radio.SendRadioMessage(uid, message, _securityChannel, uid);
     }
 
-    private void OnGetAlternativeVerbs(EntityUid uid, SecuritronComponent component, GetVerbsEvent<AlternativeVerb> args)
-    {
-        if (!args.CanInteract || !args.CanAccess)
-            return;
 
-        var nextMode = component.OperatingMode == SecuritronOperatingMode.Arrest
-            ? SecuritronOperatingMode.Detain
-            : SecuritronOperatingMode.Arrest;
-
-        var nextModeName = Loc.GetString(GetModeLocale(nextMode));
-
-        var verb = new AlternativeVerb
-        {
-            Text = Loc.GetString("securitron-verb-set-mode", ("mode", nextModeName)),
-            Icon = new SpriteSpecifier.Texture(new ResPath("Interface/VerbIcons/settings.svg.192dpi.png")),
-            Act = () =>
-            {
-                component.OperatingMode = nextMode;
-                Dirty(uid, component);
-
-                var modeName = Loc.GetString(GetModeLocale(component.OperatingMode));
-                _popup.PopupEntity(Loc.GetString("securitron-popup-mode-changed", ("mode", modeName)), uid, args.User);
-            }
-        };
-
-        args.Verbs.Add(verb);
-    }
-
-    private static string GetModeLocale(SecuritronOperatingMode mode)
-    {
-        return mode switch
-        {
-            SecuritronOperatingMode.Arrest => "securitron-mode-name-arrest",
-            SecuritronOperatingMode.Detain => "securitron-mode-name-detain",
-            _ => "securitron-mode-name-arrest",
-        };
-    }
 }

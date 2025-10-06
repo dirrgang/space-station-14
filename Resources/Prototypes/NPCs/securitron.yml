@@ -1,26 +1,12 @@
 - type: htnCompound
   id: SecuritronCompound
   branches:
-    - preconditions:
-        - !type:KeyBoolEqualsPrecondition
-          key: SecuritronDetainMode
-          value: false
-      tasks:
+    - tasks:
         - !type:HTNPrimitiveTask
           operator: !type:UtilityOperator
             proto: NearbyCriminalTargets
         - !type:HTNCompoundTask
           task: SecuritronArrestCompound
-    - preconditions:
-        - !type:KeyBoolEqualsPrecondition
-          key: SecuritronDetainMode
-          value: true
-      tasks:
-        - !type:HTNPrimitiveTask
-          operator: !type:UtilityOperator
-            proto: NearbyCriminalTargets
-        - !type:HTNCompoundTask
-          task: SecuritronDetainCompound
     - tasks:
         - !type:HTNCompoundTask
           task: IdleCompound
@@ -40,10 +26,6 @@
             targetKey: TargetCoordinates
             pathfindKey: TargetPathfind
             rangeKey: MeleeRange
-          preconditions:
-            - !type:KeyBoolEqualsPrecondition
-              key: SecuritronTargetSubdued
-              value: false
         - !type:HTNPrimitiveTask
           operator: !type:JukeOperator
             jukeType: Away
@@ -65,56 +47,3 @@
               proto: NearbyCriminalTargets
               key: Target
 
-- type: htnCompound
-  id: SecuritronDetainCompound
-  branches:
-    - preconditions:
-      - !type:KeyExistsPrecondition
-        key: Target
-      - !type:KeyBoolEqualsPrecondition
-        key: SecuritronTargetFleeing
-        value: true
-      tasks:
-        - !type:HTNPrimitiveTask
-          operator: !type:MoveToOperator
-            shutdownState: PlanFinished
-            pathfindInPlanning: true
-            removeKeyOnFinish: false
-            targetKey: TargetCoordinates
-            pathfindKey: TargetPathfind
-            rangeKey: MeleeRange
-          preconditions:
-            - !type:KeyBoolEqualsPrecondition
-              key: SecuritronTargetSubdued
-              value: false
-        - !type:HTNPrimitiveTask
-          operator: !type:JukeOperator
-            jukeType: Away
-        - !type:HTNPrimitiveTask
-          operator: !type:MeleeOperator
-            targetKey: Target
-          preconditions:
-            - !type:KeyExistsPrecondition
-              key: Target
-            - !type:TargetInRangePrecondition
-              targetKey: Target
-              rangeKey: MeleeRange
-            - !type:KeyBoolEqualsPrecondition
-              key: SecuritronTargetSubdued
-              value: false
-    - preconditions:
-      - !type:KeyExistsPrecondition
-        key: Target
-      tasks:
-        - !type:HTNPrimitiveTask
-          operator: !type:MoveToOperator
-            shutdownState: PlanFinished
-            pathfindInPlanning: true
-            removeKeyOnFinish: false
-            targetKey: TargetCoordinates
-            pathfindKey: TargetPathfind
-            rangeKey: MeleeRange
-          preconditions:
-            - !type:KeyBoolEqualsPrecondition
-              key: SecuritronTargetSubdued
-              value: false
