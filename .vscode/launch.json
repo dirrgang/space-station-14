@@ -28,7 +28,21 @@
             "request": "launch",
             "program": "${workspaceFolder}/bin/Content.Server/Content.Server.dll",
             "args": [],
-            "console": "integratedTerminal",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Server (Dynamic Dev)",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/Content.Server/Content.Server.dll",
+            "args": [
+                "--cvar",
+                "config.presets=dynamic",
+                "--cvar",
+                "game.defaultpreset=dynamic-dev"
+            ],
+            "console": "internalConsole",
             "stopAtEntry": false
         },
         {
@@ -47,6 +61,14 @@
             "name": "Server/Client",
             "configurations": [
                 "Server",
+                "Client"
+            ],
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Server/Client (Dynamic Dev)",
+            "configurations": [
+                "Server (Dynamic Dev)",
                 "Client"
             ],
             "preLaunchTask": "build"

@@ -1,0 +1,16 @@
+- type: gamePreset
+  id: DynamicDev
+  parent: Dynamic
+  alias:
+  - dynamic-dev
+  - dynamicdev
+  name: dynamic-title
+  showInVote: false
+  description: dynamic-description
+  rules:
+  - DynamicRuleDev
+  - DummyNonAntag
+  - DynamicStationEventScheduler
+  - MeteorSwarmScheduler
+  - SpaceTrafficControlEventScheduler
+  - BasicRoundstartVariation

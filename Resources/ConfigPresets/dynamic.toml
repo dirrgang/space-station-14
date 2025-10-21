@@ -1,0 +1,5 @@
+[game]
+defaultpreset = "dynamic-dev"
+
+["dynamic.difficulty"]
+enabled = true
