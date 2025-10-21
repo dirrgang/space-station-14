@@ -14,6 +14,7 @@ using Content.Shared.Players.PlayTimeTracking;
 using Content.Shared.Roles;
 using Robust.Shared.Configuration;
 using Robust.Shared.Enums;
+using Robust.Shared.Log;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
 using Robust.Shared.Timing;
@@ -26,6 +27,8 @@ namespace Content.Server.GameTicking.Rules;
 /// </summary>
 public sealed class DynamicDifficultySystem : EntitySystem
 {
+    private readonly ISawmill _sawmill = Logger.GetSawmill("dynamicdifficulty");
+
     [Dependency] private readonly IConfigurationManager _cfg = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly IPlayerManager _playerManager = default!;
@@ -150,12 +153,15 @@ public sealed class DynamicDifficultySystem : EntitySystem
 
         var userId = session.UserId;
 
-        if (!TryComp(rule.Owner, out DynamicRuleComponent? dynamicRule))
+        if (!TryGetController(rule.Owner, out var controller, out var dynamicRule))
+        {
+            _sawmill.Warning($"Received budget reservation request for {ToPrettyString(rule.Owner)} but no dynamic controller was found.");
             return true;
+        }
 
-        var dynamicEntity = (rule.Owner, dynamicRule);
+        var dynamicEntity = (controller, dynamicRule);
         ApplyBudgetGain(dynamicEntity);
-        var runtime = GetRuntime(rule.Owner);
+        var runtime = GetRuntime(controller);
 
         var activePlayers = runtime.Metrics.ActivePlayers;
         if (activePlayers <= 0)
@@ -197,7 +203,10 @@ public sealed class DynamicDifficultySystem : EntitySystem
         if (!_enabled)
             return;
 
-        if (!_runtimes.TryGetValue(ruleUid, out var runtime))
+        if (!TryGetController(ruleUid, out var controller, out _))
+            return;
+
+        if (!_runtimes.TryGetValue(controller, out var runtime))
             return;
 
         if (!runtime.Threats.TryGetValue(userId, out var entry))
@@ -207,10 +216,47 @@ public sealed class DynamicDifficultySystem : EntitySystem
         runtime.Threats[userId] = entry;
     }
 
+    // Used when antagonist setup fails so the reservation can be released.
+    public void CancelReservation(EntityUid ruleUid, NetUserId userId)
+    {
+        if (!_enabled)
+            return;
+
+        if (!TryGetController(ruleUid, out var controller, out var dynamicRule))
+        {
+            _sawmill.Warning($"Attempted to cancel reservation on {ToPrettyString(ruleUid)} but no dynamic controller was found.");
+            return;
+        }
+
+        if (!_runtimes.TryGetValue(controller, out var runtime))
+        {
+            _sawmill.Debug($"Attempted to cancel reservation for {ToPrettyString(controller)} but no runtime state exists.");
+            return;
+        }
+
+        if (!runtime.Threats.TryGetValue(userId, out var entry))
+        {
+            _sawmill.Debug($"Attempted to cancel reservation for user {userId} on {ToPrettyString(controller)} but no reservation was recorded.");
+            return;
+        }
+
+        runtime.Threats.Remove(userId);
+
+        dynamicRule.Budget = MathF.Min(dynamicRule.Budget + entry.Cost, _maxBudget);
+        runtime.LastBudget = dynamicRule.Budget;
+        _sawmill.Info($"Refunded {entry.Cost:0.##} budget to {ToPrettyString(controller)} after failed antagonist setup for user {userId}.");
+    }
+
     public DifficultySnapshot? GetSnapshot(EntityUid ruleUid, DynamicRuleComponent? component = null)
     {
-        if (!_runtimes.TryGetValue(ruleUid, out var runtime))
+        if (!TryGetController(ruleUid, out var controller, out var resolvedComponent))
             return null;
+
+        if (!_runtimes.TryGetValue(controller, out var runtime))
+            return null;
+
+        if (component == null)
+            component = resolvedComponent;
 
         var budget = component?.Budget ?? runtime.LastBudget;
         var threats = new List<ThreatSnapshot>(runtime.Threats.Count);
@@ -233,14 +279,20 @@ public sealed class DynamicDifficultySystem : EntitySystem
 
     public float AdjustBias(EntityUid ruleUid, float delta)
     {
-        var runtime = GetRuntime(ruleUid);
+        if (!TryGetController(ruleUid, out var controller, out _))
+            return 0f;
+
+        var runtime = GetRuntime(controller);
         runtime.ManualBias += delta;
         return runtime.ManualBias;
     }
 
     public float SetBias(EntityUid ruleUid, float value)
     {
-        var runtime = GetRuntime(ruleUid);
+        if (!TryGetController(ruleUid, out var controller, out _))
+            return 0f;
+
+        var runtime = GetRuntime(controller);
         runtime.ManualBias = value;
         return runtime.ManualBias;
     }
@@ -437,6 +489,34 @@ public sealed class DynamicDifficultySystem : EntitySystem
         // Always treat the core Security department as valid if the list is empty.
         if (_securityDepartments.Count == 0)
             _securityDepartments.Add("Security");
+    }
+
+    private bool TryGetController(EntityUid entity, out EntityUid controller, out DynamicRuleComponent component)
+    {
+        if (TryComp<DynamicRuleComponent>(entity, out var direct))
+        {
+            component = direct;
+            controller = entity;
+            return true;
+        }
+
+        if (!TryComp<DynamicDifficultyParticipantComponent>(entity, out var participant))
+        {
+            controller = default;
+            component = default!;
+            return false;
+        }
+
+        controller = participant.Controller;
+        if (!TryComp<DynamicRuleComponent>(controller, out var owner))
+        {
+            component = default!;
+            controller = default;
+            return false;
+        }
+
+        component = owner;
+        return true;
     }
 
     private sealed class DifficultyRuntime

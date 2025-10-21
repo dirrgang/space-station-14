@@ -92,6 +92,9 @@ public sealed class DynamicRuleSystem : GameRuleSystem<DynamicRuleComponent>
 
             executedRules.Add(ruleUid);
 
+            var participant = EnsureComp<DynamicDifficultyParticipantComponent>(ruleUid);
+            participant.Controller = entity.Owner;
+
             if (TryComp<DynamicRuleCostComponent>(ruleUid, out var cost))
             {
                 entity.Comp.Budget -= cost.Cost;

@@ -416,6 +416,9 @@ public sealed partial class AntagSelectionSystem : GameRuleSystem<AntagSelection
             _adminLogger.Add(LogType.AntagSelection,$"Attempted to make {session} antagonist in gamerule {ToPrettyString(ent)} but there was no valid entity for player.");
             if (session != null && ent.Comp.RemoveUponFailedSpawn)
             {
+                if (_difficulty.Enabled)
+                    _difficulty.CancelReservation(ent.Owner, session.UserId);
+
                 ent.Comp.AssignedSessions.Remove(session);
                 ent.Comp.PreSelectedSessions[def].Remove(session);
             }
@@ -447,6 +450,9 @@ public sealed partial class AntagSelectionSystem : GameRuleSystem<AntagSelection
                 _adminLogger.Add(LogType.AntagSelection,$"Antag spawner {player} in gamerule {ToPrettyString(ent)} failed due to not having GhostRoleAntagSpawnerComponent.");
                 if (session != null)
                 {
+                    if (_difficulty.Enabled)
+                        _difficulty.CancelReservation(ent.Owner, session.UserId);
+
                     ent.Comp.AssignedSessions.Remove(session);
                     ent.Comp.PreSelectedSessions[def].Remove(session);
                 }
