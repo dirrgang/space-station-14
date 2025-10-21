@@ -135,14 +135,26 @@ command-description-dynamicrule-list =
 command-description-dynamicrule-get =
     Gets the currently active dynamic rule.
 command-description-dynamicrule-budget =
-    Gets the current budget of the piped dynamic rule(s).
+    Gets the current budget of the targeted dynamic rule. If no target is provided, uses the sole active rule.
 command-description-dynamicrule-adjust =
-    Adjusts the budget of the piped dynamic rule(s) by the specified amount.
+    Adjusts the budget of the targeted dynamic rule by the specified amount (defaults to the active rule).
 command-description-dynamicrule-set =
-    Sets the budget of the piped dynamic rule(s) to the specified amount.
+    Sets the budget of the targeted dynamic rule to the specified amount (defaults to the active rule).
 command-description-dynamicrule-dryrun =
-    Returns a list of rules that could be activated if the rule ran at this moment with all current context. This is not a complete list of every single rule that could be run, just a sample of the current valid ones.
+    Returns a list of rules that could be activated if the rule ran at this moment with all current context. Defaults to the active dynamic rule when no target is supplied.
 command-description-dynamicrule-executenow =
-    Executes the piped dynamic rule as if it had reached its regular update time.
+    Executes the targeted dynamic rule as if it had reached its regular update time (defaults to the active rule).
 command-description-dynamicrule-rules =
-    Gets a list of all the rules spawned by the piped dynamic rule.
+    Gets a list of all the rules spawned by the targeted dynamic rule (defaults to the active rule).
+command-description-dynamicrule-score =
+    Summarises the live difficulty snapshot for the targeted dynamic rule, including budget, multiplier and tracked threats.
+command-description-dynamicrule-biasadjust =
+    Adjusts the manual bias applied by dynamic difficulty for the targeted rule (defaults to the active rule).
+command-description-dynamicrule-biasset =
+    Sets the manual bias applied by dynamic difficulty for the targeted rule (defaults to the active rule).
+command-description-dynamicrule-threats =
+    Lists the threat reservations tracked for the targeted dynamic rule, marking debug reservations with "(debug)".
+command-description-dynamicrule-threatset =
+    Replaces the debug threat reservations for the targeted rule, reserving budget to simulate existing antagonists.
+command-description-dynamicrule-threatclear =
+    Removes all debug threat reservations from the targeted dynamic rule and refunds their budget.

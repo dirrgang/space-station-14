@@ -181,6 +181,7 @@ public sealed class DynamicDifficultySystem : EntitySystem
             entry.Cost += cost;
             entry.ReservedAt = _timing.CurTime;
             entry.Label = GetThreatLabel(def, session);
+            entry.IsDebug = false;
             runtime.Threats[userId] = entry;
         }
         else
@@ -190,7 +191,8 @@ public sealed class DynamicDifficultySystem : EntitySystem
                 UserId = userId,
                 Cost = cost,
                 ReservedAt = _timing.CurTime,
-                Label = GetThreatLabel(def, session)
+                Label = GetThreatLabel(def, session),
+                IsDebug = false
             };
         }
 
@@ -262,7 +264,7 @@ public sealed class DynamicDifficultySystem : EntitySystem
         var threats = new List<ThreatSnapshot>(runtime.Threats.Count);
         foreach (var pair in runtime.Threats)
         {
-            threats.Add(new ThreatSnapshot(pair.Value.Label, pair.Key, pair.Value.Cost));
+            threats.Add(new ThreatSnapshot(pair.Value.Label, pair.Key, pair.Value.Cost, pair.Value.IsDebug));
         }
 
         return new DifficultySnapshot(
@@ -297,6 +299,80 @@ public sealed class DynamicDifficultySystem : EntitySystem
         return runtime.ManualBias;
     }
 
+    public DebugThreatMutationResult SetDebugThreats(EntityUid ruleUid, int count, float costPerThreat, string? labelPrefix = null)
+    {
+        if (!TryGetController(ruleUid, out var controller, out var component))
+            return default;
+
+        var runtime = GetRuntime(controller);
+        var removed = 0;
+        var refunded = 0f;
+
+        var removals = new List<NetUserId>();
+        foreach (var (userId, entry) in runtime.Threats)
+        {
+            if (!entry.IsDebug)
+                continue;
+
+            removals.Add(userId);
+            removed++;
+            refunded += entry.Cost;
+        }
+
+        foreach (var userId in removals)
+        {
+            runtime.Threats.Remove(userId);
+        }
+
+        if (refunded > 0f)
+            component.Budget = MathF.Min(component.Budget + refunded, _maxBudget);
+
+        runtime.LastBudget = component.Budget;
+
+        if (count <= 0)
+            return new DebugThreatMutationResult(0, removed, 0f, refunded, component.Budget);
+
+        if (float.IsNaN(costPerThreat) || float.IsInfinity(costPerThreat))
+            costPerThreat = 0f;
+
+        if (costPerThreat < 0f)
+            costPerThreat = 0f;
+
+        var reserved = 0f;
+        var added = 0;
+        var prefix = string.IsNullOrWhiteSpace(labelPrefix) ? "debug" : labelPrefix!;
+
+        for (var i = 0; i < count; i++)
+        {
+            var cost = costPerThreat;
+            if (component.Budget < cost)
+                cost = component.Budget;
+
+            component.Budget = MathF.Max(0f, component.Budget - cost);
+            reserved += cost;
+
+            var userId = new NetUserId(Guid.NewGuid());
+            runtime.Threats[userId] = new ThreatEntry
+            {
+                UserId = userId,
+                Cost = cost,
+                ReservedAt = _timing.CurTime,
+                Label = $"{prefix}#{i + 1}",
+                IsDebug = true
+            };
+
+            added++;
+        }
+
+        runtime.LastBudget = component.Budget;
+        return new DebugThreatMutationResult(added, removed, reserved, refunded, component.Budget);
+    }
+
+    public DebugThreatMutationResult ClearDebugThreats(EntityUid ruleUid)
+    {
+        return SetDebugThreats(ruleUid, 0, 0f);
+    }
+
     private DifficultyRuntime GetRuntime(EntityUid uid)
     {
         if (!_runtimes.TryGetValue(uid, out var runtime))
@@ -318,6 +394,9 @@ public sealed class DynamicDifficultySystem : EntitySystem
 
         foreach (var (user, entry) in runtime.Threats)
         {
+            if (entry.IsDebug)
+                continue;
+
             if (entry.Mind != null)
             {
                 if (_roles.MindIsAntagonist(entry.Mind.Value))
@@ -544,6 +623,7 @@ public sealed class DynamicDifficultySystem : EntitySystem
         public EntityUid? Mind;
         public string Label = string.Empty;
         public TimeSpan ReservedAt;
+        public bool IsDebug;
     }
 
     public readonly record struct DifficultySnapshot(
@@ -557,7 +637,8 @@ public sealed class DynamicDifficultySystem : EntitySystem
         float SecurityContribution,
         IReadOnlyList<ThreatSnapshot> Threats);
 
-    public readonly record struct ThreatSnapshot(string Label, NetUserId UserId, float Cost);
+    public readonly record struct ThreatSnapshot(string Label, NetUserId UserId, float Cost, bool IsDebug);
+    public readonly record struct DebugThreatMutationResult(int Added, int Removed, float Reserved, float Refunded, float Budget);
 
     private static string GetThreatLabel(AntagSelectionDefinition def, ICommonSession session)
     {
