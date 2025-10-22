@@ -1,0 +1,36 @@
+- type: entity
+  id: CEExampleArmorPlate
+  parent: ClothingOuterBase
+  abstract: true
+  components:
+  - type: ArmorRating
+    arSharpMm: 12
+    arBluntMm: 4
+    coverage:
+    - Body
+    - TorsoFront
+    - TorsoBack
+    layerOrder: SuitOuter
+    stopsOnDeflect: true
+  - type: Armor
+    modifiers:
+      coefficients:
+        Blunt: 1
+        Slash: 1
+        Piercing: 1
+        Heat: 1
+
+- type: entity
+  id: CEExampleAPSlug
+  parent: BaseBullet
+  abstract: true
+  components:
+  - type: PenetratingProjectile
+    apSharpMm: 18
+    apBluntMm: 3
+    deflectBluntScalar: 0.35
+    familyTag: AP
+  - type: Projectile
+    damage:
+      types:
+        Piercing: 20
