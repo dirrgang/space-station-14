@@ -84,6 +84,16 @@ public abstract class SharedMeleeWeaponSystem : EntitySystem
     /// </summary>
     protected virtual bool PenetrationPrepassEnabled => false;
 
+    /// <summary>
+    ///     Allows server implementations to run the penetration pre-pass for melee hits.
+    ///     Returns true when the damage specifier was transformed and optionally requests legacy armor to be skipped.
+    /// </summary>
+    protected virtual bool TryRunMeleePenetration(EntityUid attacker, EntityUid weapon, EntityUid target, ref DamageSpecifier damage, out bool skipArmorModifiers)
+    {
+        skipArmorModifiers = false;
+        return false;
+    }
+
     public override void Initialize()
     {
         base.Initialize();
@@ -548,12 +558,14 @@ public abstract class SharedMeleeWeaponSystem : EntitySystem
 
         var modifiedDamage = DamageSpecifier.ApplyModifierSets(damage + hitEvent.BonusDamage + attackedEvent.BonusDamage, hitEvent.ModifiersList);
 
-        if (PenetrationPrepassEnabled)
+        var ignoreResistances = resistanceBypass;
+
+        if (PenetrationPrepassEnabled && TryRunMeleePenetration(user, meleeUid, target.Value, ref modifiedDamage, out var skipArmor))
         {
-            // TODO COMBAT-EXTENDED: run the penetration pre-pass before applying melee damage.
+            ignoreResistances |= skipArmor;
         }
 
-        var damageResult = Damageable.TryChangeDamage(target, modifiedDamage, origin:user, ignoreResistances:resistanceBypass);
+        var damageResult = Damageable.TryChangeDamage(target, modifiedDamage, origin:user, ignoreResistances:ignoreResistances);
 
         if (damageResult is {Empty: false})
         {
@@ -709,12 +721,14 @@ public abstract class SharedMeleeWeaponSystem : EntitySystem
             RaiseLocalEvent(entity, attackedEvent);
             var modifiedDamage = DamageSpecifier.ApplyModifierSets(damage + hitEvent.BonusDamage + attackedEvent.BonusDamage, hitEvent.ModifiersList);
 
-            if (PenetrationPrepassEnabled)
+            var ignoreResistances = resistanceBypass;
+
+            if (PenetrationPrepassEnabled && TryRunMeleePenetration(user, meleeUid, entity, ref modifiedDamage, out var skipArmor))
             {
-                // TODO COMBAT-EXTENDED: run the penetration pre-pass before applying melee damage.
+                ignoreResistances |= skipArmor;
             }
 
-            var damageResult = Damageable.TryChangeDamage(entity, modifiedDamage, origin: user, ignoreResistances: resistanceBypass);
+            var damageResult = Damageable.TryChangeDamage(entity, modifiedDamage, origin: user, ignoreResistances: ignoreResistances);
 
             if (damageResult != null && damageResult.GetTotal() > FixedPoint2.Zero)
             {

@@ -67,7 +67,8 @@ public sealed class ProjectileSystem : SharedProjectileSystem
             damageRequired -= damageableComponent.TotalDamage;
             damageRequired = FixedPoint2.Max(damageRequired, FixedPoint2.Zero);
         }
-        var modifiedDamage = _damageableSystem.TryChangeDamage(target, ev.Damage, component.IgnoreResistances, damageable: damageableComponent, origin: component.Shooter);
+        var ignoreResistances = component.IgnoreResistances || ev.PenetrationHandled;
+        var modifiedDamage = _damageableSystem.TryChangeDamage(target, ev.Damage, ignoreResistances, damageable: damageableComponent, origin: component.Shooter);
         var deleted = Deleted(target);
 
         if (modifiedDamage is not null && Exists(component.Shooter))
@@ -139,3 +140,4 @@ public sealed class ProjectileSystem : SharedProjectileSystem
         }
     }
 }
+

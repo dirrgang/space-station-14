@@ -1,4 +1,5 @@
 using Content.Server.Chat.Systems;
+using Content.Server.Combat.Penetration;
 using Content.Server.Movement.Systems;
 using Content.Shared.CCVar;
 using Content.Shared.Chat;
@@ -20,6 +21,7 @@ public sealed class MeleeWeaponSystem : SharedMeleeWeaponSystem
     [Dependency] private readonly LagCompensationSystem _lag = default!;
     [Dependency] private readonly SharedColorFlashEffectSystem _color = default!;
     [Dependency] private readonly IConfigurationManager _cfg = default!;
+    [Dependency] private readonly PenetrationSystem _penetration = default!;
 
     private bool _penetrationPrepassEnabled;
 
@@ -32,6 +34,11 @@ public sealed class MeleeWeaponSystem : SharedMeleeWeaponSystem
             value => _penetrationPrepassEnabled = value, true);
 
         SubscribeLocalEvent<MeleeSpeechComponent, MeleeHitEvent>(OnSpeechHit);
+    }
+
+    protected override bool TryRunMeleePenetration(EntityUid attacker, EntityUid weapon, EntityUid target, ref DamageSpecifier damage, out bool skipArmorModifiers)
+    {
+        return _penetration.TryProcessMelee(attacker, weapon, target, ref damage, out skipArmorModifiers);
     }
 
     protected override bool ArcRaySuccessful(EntityUid targetUid,

@@ -34,3 +34,17 @@
     damage:
       types:
         Piercing: 20
+
+- type: entity
+  id: CEExampleAPSlugRound
+  parent: CEExampleAPSlug
+
+- type: entity
+  id: CEExampleTarget
+  components:
+  - type: Damageable
+    damageContainer: Biological
+  - type: ArmorRating
+    arSharpMm: 25
+    coverage:
+    - Body
