@@ -78,6 +78,12 @@ public abstract class SharedMeleeWeaponSystem : EntitySystem
     /// </summary>
     public const float GracePeriod = 0.05f;
 
+    /// <summary>
+    ///     When true, melee impact handling will eventually run the penetration pre-pass before legacy mitigation.
+    ///     Server implementations should override this once the pre-pass logic exists.
+    /// </summary>
+    protected virtual bool PenetrationPrepassEnabled => false;
+
     public override void Initialize()
     {
         base.Initialize();
@@ -541,6 +547,12 @@ public abstract class SharedMeleeWeaponSystem : EntitySystem
         RaiseLocalEvent(target.Value, attackedEvent);
 
         var modifiedDamage = DamageSpecifier.ApplyModifierSets(damage + hitEvent.BonusDamage + attackedEvent.BonusDamage, hitEvent.ModifiersList);
+
+        if (PenetrationPrepassEnabled)
+        {
+            // TODO COMBAT-EXTENDED: run the penetration pre-pass before applying melee damage.
+        }
+
         var damageResult = Damageable.TryChangeDamage(target, modifiedDamage, origin:user, ignoreResistances:resistanceBypass);
 
         if (damageResult is {Empty: false})
@@ -696,6 +708,11 @@ public abstract class SharedMeleeWeaponSystem : EntitySystem
             var attackedEvent = new AttackedEvent(meleeUid, user, GetCoordinates(ev.Coordinates));
             RaiseLocalEvent(entity, attackedEvent);
             var modifiedDamage = DamageSpecifier.ApplyModifierSets(damage + hitEvent.BonusDamage + attackedEvent.BonusDamage, hitEvent.ModifiersList);
+
+            if (PenetrationPrepassEnabled)
+            {
+                // TODO COMBAT-EXTENDED: run the penetration pre-pass before applying melee damage.
+            }
 
             var damageResult = Damageable.TryChangeDamage(entity, modifiedDamage, origin: user, ignoreResistances: resistanceBypass);
 

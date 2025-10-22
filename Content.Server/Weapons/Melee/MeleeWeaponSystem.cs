@@ -1,9 +1,11 @@
 using Content.Server.Chat.Systems;
 using Content.Server.Movement.Systems;
+using Content.Shared.CCVar;
 using Content.Shared.Effects;
 using Content.Shared.Speech.Components;
 using Content.Shared.Weapons.Melee;
 using Content.Shared.Weapons.Melee.Events;
+using Robust.Shared.Configuration;
 using Robust.Shared.Map;
 using Robust.Shared.Player;
 using System.Linq;
@@ -16,10 +18,17 @@ public sealed class MeleeWeaponSystem : SharedMeleeWeaponSystem
     [Dependency] private readonly ChatSystem _chat = default!;
     [Dependency] private readonly LagCompensationSystem _lag = default!;
     [Dependency] private readonly SharedColorFlashEffectSystem _color = default!;
+    [Dependency] private readonly IConfigurationManager _cfg = default!;
+
+    private bool _penetrationPrepassEnabled;
+
+    protected override bool PenetrationPrepassEnabled => _penetrationPrepassEnabled;
 
     public override void Initialize()
     {
         base.Initialize();
+        Subs.CVar(_cfg, CCVars.CombatPenetrationPrepassEnabled,
+            value => _penetrationPrepassEnabled = value, true);
 
         SubscribeLocalEvent<MeleeSpeechComponent, MeleeHitEvent>(OnSpeechHit);
     }

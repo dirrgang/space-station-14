@@ -2,11 +2,13 @@ using Content.Server.Administration.Logs;
 using Content.Server.Destructible;
 using Content.Server.Effects;
 using Content.Server.Weapons.Ranged.Systems;
+using Content.Shared.CCVar;
 using Content.Shared.Camera;
 using Content.Shared.Damage;
 using Content.Shared.Database;
 using Content.Shared.FixedPoint;
 using Content.Shared.Projectiles;
+using Robust.Shared.Configuration;
 using Robust.Shared.Physics.Events;
 using Robust.Shared.Player;
 
@@ -19,11 +21,16 @@ public sealed class ProjectileSystem : SharedProjectileSystem
     [Dependency] private readonly DamageableSystem _damageableSystem = default!;
     [Dependency] private readonly DestructibleSystem _destructibleSystem = default!;
     [Dependency] private readonly GunSystem _guns = default!;
+    [Dependency] private readonly IConfigurationManager _cfg = default!;
     [Dependency] private readonly SharedCameraRecoilSystem _sharedCameraRecoil = default!;
+
+    private bool _penetrationPrepassEnabled;
 
     public override void Initialize()
     {
         base.Initialize();
+        Subs.CVar(_cfg, CCVars.CombatPenetrationPrepassEnabled,
+            value => _penetrationPrepassEnabled = value, true);
         SubscribeLocalEvent<ProjectileComponent, StartCollideEvent>(OnStartCollide);
     }
 
@@ -45,6 +52,12 @@ public sealed class ProjectileSystem : SharedProjectileSystem
         }
 
         var ev = new ProjectileHitEvent(component.Damage * _damageableSystem.UniversalProjectileDamageModifier, target, component.Shooter);
+
+        if (_penetrationPrepassEnabled)
+        {
+            // TODO COMBAT-EXTENDED: run the penetration pre-pass before raising the hit event.
+        }
+
         RaiseLocalEvent(uid, ref ev);
 
         var otherName = ToPrettyString(target);
