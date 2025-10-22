@@ -1,6 +1,7 @@
 using Content.Server.Chat.Systems;
 using Content.Server.Movement.Systems;
 using Content.Shared.CCVar;
+using Content.Shared.Chat;
 using Content.Shared.Effects;
 using Content.Shared.Speech.Components;
 using Content.Shared.Weapons.Melee;
