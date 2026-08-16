@@ -12,7 +12,7 @@ public sealed partial class TemperatureEntityConditionSystem : EntityConditionSy
 {
     protected override void Condition(Entity<TemperatureComponent> entity, ref EntityConditionEvent<TemperatureCondition> args)
     {
-        if (entity.Comp.CurrentTemperature >= args.Condition.Min && entity.Comp.CurrentTemperature <= args.Condition.Max)
+        if (entity.Comp.Temperature >= args.Condition.Min && entity.Comp.Temperature <= args.Condition.Max)
             args.Result = true;
     }
 }
@@ -46,7 +46,7 @@ public sealed partial class TemperatureCondition : EntityConditionBase<Temperatu
     public float Max = float.PositiveInfinity;
 
     public override string EntityConditionGuidebookText(IPrototypeManager prototype) =>
-        Loc.GetString("reagent-effect-condition-guidebook-body-temperature",
+        Loc.GetString("entity-condition-guidebook-body-temperature",
             ("max", float.IsPositiveInfinity(Max) ? (float) int.MaxValue : Max),
             ("min", Min));
 }

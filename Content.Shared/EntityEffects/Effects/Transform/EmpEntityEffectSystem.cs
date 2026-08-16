@@ -11,8 +11,8 @@ namespace Content.Shared.EntityEffects.Effects.Transform;
 /// <inheritdoc cref="EntityEffectSystem{T,TEffect}"/>
 public sealed partial class EmpEntityEffectSystem : EntityEffectSystem<TransformComponent, Emp>
 {
-    [Dependency] private readonly SharedEmpSystem _emp = default!;
-    [Dependency] private readonly SharedTransformSystem _xform = default!;
+    [Dependency] private SharedEmpSystem _emp = default!;
+    [Dependency] private SharedTransformSystem _xform = default!;
 
     protected override void Effect(Entity<TransformComponent> entity, ref EntityEffectEvent<Emp> args)
     {
@@ -52,7 +52,5 @@ public sealed partial class Emp : EntityEffectBase<Emp>
     public override string EntityEffectGuidebookText(IPrototypeManager prototype, IEntitySystemManager entSys)
         => Loc.GetString("entity-effect-guidebook-emp-reaction-effect", ("chance", Probability));
 
-    public override bool ShouldLog => true;
-
-    public override LogImpact LogImpact => LogImpact.Medium;
+    public override LogImpact? Impact => LogImpact.Medium;
 }

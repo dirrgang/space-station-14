@@ -1,7 +1,7 @@
 - type: entity
+  parent: [ SmallConstructibleMachine, StructureHealthMachineStrong ]
   id: Emitter
   name: emitter
-  parent: SmallConstructibleMachine
   description: A heavy duty industrial laser. Shoots non-stop when turned on.
   placement:
     mode: SnapgridCenter
@@ -36,6 +36,7 @@
       visible: false
       map: ["enum.LockVisualLayers.Lock"]
   - type: Emitter
+    alertRadio: true
   - type: Gun
     showExamineText: false
     fireRate: 10 #just has to be fast enough to keep up with upgrades
@@ -53,30 +54,24 @@
         !type:CableDeviceNode
         nodeGroupID: MVPower
   - type: Damageable
-    damageContainer: StructuralInorganic
-    damageModifierSet: StructuralMetallicStrong
+    damageModifierSet: PlasteelMod
+  - type: ActiveRadio
+    channels:
+    - Engineering
   - type: Destructible
     thresholds:
-      - trigger:
-          !type:DamageTrigger
-          damage: 400
-        behaviors:
-          - !type:DoActsBehavior
-            acts: [ "Destruction" ]
-      - trigger:
-          !type:DamageTrigger
-          damage: 200
-        behaviors:
-        - !type:PlaySoundBehavior
-          sound:
-            collection: MetalBreak
-        - !type:SpawnEntitiesBehavior
-          spawn:
-            SheetSteel1:
-              min: 5
-              max: 5
-        - !type:DoActsBehavior
-          acts: [ "Destruction" ]
+    - trigger:
+        !type:DamageTrigger
+        damage: 275
+      behaviors:
+      - !type:PlaySoundBehavior
+        sound:
+          collection: MetalBreak
+      - !type:SpawnEntitiesBehavior
+        spawn:
+          SheetSteel1:
+            min: 5
+            max: 5
   - type: Anchorable
   - type: Pullable
   - type: Rotatable
